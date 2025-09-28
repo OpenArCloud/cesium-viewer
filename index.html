@@ -40,7 +40,7 @@
 
     #toolbar {
       position: absolute;
-      top: 10px;
+      top: 50px;
       left: 10px;
       background: rgba(42, 42, 42, 0.7);
       padding: 10px;
@@ -50,7 +50,7 @@
 
     #toolbar1 {
       position: absolute;
-      top: 90px;
+      top: 50px;
       left: 10px;
       background: rgba(42, 42, 42, 0.7);
       padding: 10px;
@@ -88,15 +88,16 @@
     }
 
     #toolbar2 {
-      color:white;
+      color: white;
       position: absolute;
-      top: 160px;
+      top: 50px;
       left: 10px;
       background: rgba(42, 42, 42, 0.7);
       padding: 10px;
       border-radius: 5px;
       z-index: 20;
     }
+
     #toolbar2 button {
       margin: 5px;
       padding: 5px 10px;
@@ -164,6 +165,23 @@
   <div id="loadingOverlay">
     <h1>Loading...</h1>
   </div>
+
+  <div id="toolbarSelector"
+    style="position: absolute; top: 10px; left: 20px; z-index: 30; background: rgba(42, 42, 42, 0.7); padding: 10px">
+    <label for="toolbarSelect" style="color:white;">Select Toolbar: </label>
+    <select id="toolbarSelect">
+      <option value="">-- Choose --</option>
+      <option value="toolbar">RMQ</option>
+      <option value="toolbar1">VPS</option>
+      <option value="toolbar2">POI</option>
+    </select>
+  </div>
+  <div id="baseToggle" style="position: absolute; top: 10px; left: 250px; z-index: 30; 
+            background: rgba(42,42,42,0.7); padding: 8px; border-radius: 5px; color:white;">
+    <input type="checkbox" id="myToggle">
+    <label for="myToggle">Base connection</label>
+  </div>
+
   <div id="toolbar">
     <button onclick="Corvin()">Corvin</button>
     <button onclick="Moricz()">Moricz</button>
@@ -192,13 +210,15 @@
     </span>
     <div id="statusText"></div>
   </div>
-
-  <div id = "toolbar2">
+  <div id="toolbar2">
     <input type="text" placeholder="POI URL" id="poiurl">
     <input type="text" placeholder="Query" id="query">
     <button onclick="searchForPOIS()">Search</button>
     <div id="poiSearchText"></div>
   </div>
+
+
+
   <canvas id="canvas"></canvas>
   <script type="module">
 
@@ -214,8 +234,8 @@
     let poiHeight = 0;
 
     //TOKENS------------
-    const CesiumToken = '';
-    const tileID = 0;
+    const CesiumToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0ZGIyMGE3NC03NmUxLTRlNjQtYTE3Ny1mNzQwOGI0YTM1NzgiLCJpZCI6Mjk0MDAxLCJpYXQiOjE3NDQ2Mzk3ODR9.K68s7FUXRHCwRn8L4UZQFQHzDfO3RmikQmRcDbgY6Jo';
+    const tileID = 2275207;
     //------------------
 
     import { v4 as uuidv4 } from 'uuid';
@@ -237,18 +257,38 @@
     const fileInput = document.getElementById('fileInput');
     const output = document.getElementById('base64Output');
 
+    let connectionDetails;
+
+    fetch("connect.json")
+      .then(response => response.json())
+      .then(data => {
+        connectionDetails = data;
+        console.log(connectionDetails);
+      })
+      .catch(error => console.error("Error loading JSON:", error));
+
+    let baseConnected = false;
+
+    const toggle = document.getElementById("myToggle");
+
+    toggle.addEventListener("change", function () {
+      baseConnected = this.checked;
+      console.log("Base toggle state:", baseConnected);
+    });
+
+
     function connectRMQ() {
       rmqClient = new Client({
-        brokerURL: document.getElementById("rmqurl").value,
+        brokerURL: baseConnected ? connectionDetails.rmqurl : getElementById("rmqurl").value,
         connectHeaders: {
-          login: document.getElementById("rmquser").value,
-          passcode: document.getElementById("rmqpassword").value
+          login: baseConnected ? connectionDetails.rmquser : document.getElementById("rmquser").value,
+          passcode: baseConnected ? connectionDetails.rmqpassword : document.getElementById("rmqpassword").value
         },
         debug: str => console.log('STOMP:', str),
         onConnect: () => {
           console.log('Connected!');
 
-          rmqClient.subscribe(document.getElementById("rmqsub").value, message => {
+          rmqClient.subscribe(baseConnected ? connectionDetails.rmqtopic : document.getElementById("rmqsub").value, message => {
             const RMQmessage = JSON.parse(message.body);
             updatePosition(RMQmessage);
           });
@@ -304,7 +344,7 @@
               .addSensor(new Sensor("cam", SENSORTYPE.camera))
               .addCameraData(IMAGEFORMAT.JPG, [width, height], base64String.split(',')[1], 0, new ImageOrientation(false, 0), cameraParams,
                 new Date().getTime(), "cam", new Privacy())
-            sendRequest(document.getElementById("vpsurl").value, JSON.stringify(geoPoseRequest))
+            sendRequest(baseConnected ? connectionDetails.vpsurl : document.getElementById("vpsurl").value, JSON.stringify(geoPoseRequest))
               .then(data => {
                 try {
                   console.log(data);
@@ -321,7 +361,7 @@
                   const pitch = Cesium.Math.toDegrees(orientation.pitch);
                   const roll = Cesium.Math.toDegrees(orientation.roll)
                   let givenHeight = parseFloat(document.getElementById("vpsheight").value) + parseFloat(height);
-                  if(!givenHeight){
+                  if (!givenHeight) {
                     givenHeight = 0;
                   }
 
@@ -433,25 +473,25 @@
         if (CreativeModeEnabled) {
           removeEntityWithName("mapPinCreative");
           if (agents.length > 0) {
-            for(let i = 0; i < agents.length; i++){
-            rmqClient.publish({
-              destination: document.getElementById("rmqsend").value,
-              body: JSON.stringify({
-                active: true,
-                creator_id: "Cesium",
-                agent_id: agents[i].name,
-                geopose: {
-                  position: {
-                    lat: lat, lon: lon, h: 0
-                  },
-                  quaternion: {
-                    x: 0, y: 0, z: 0, w: 1
+            for (let i = 0; i < agents.length; i++) {
+              rmqClient.publish({
+                destination: baseConnected ? connectionDetails.waypoint : document.getElementById("rmqsend").value,
+                body: JSON.stringify({
+                  active: true,
+                  creator_id: "Cesium",
+                  agent_id: agents[i].name,
+                  geopose: {
+                    position: {
+                      lat: lat, lon: lon, h: 0
+                    },
+                    quaternion: {
+                      x: 0, y: 0, z: 0, w: 1
+                    }
                   }
-                }
-              })
-            });
-            console.log("Message sent.");
-          }
+                })
+              });
+              console.log("Message sent.");
+            }
           }
           viewer.entities.add({
             name: "mapPinCreative",
@@ -500,32 +540,32 @@
       })
     }
 
-    async function searchForPOIS(){
+    async function searchForPOIS() {
       removeEntityWithName("mapPin");
-      let url = document.getElementById("poiurl").value;
+      let url = baseConnected ? connectionDetails.poiurl : document.getElementById("poiurl").value;
       let query = document.getElementById("query").value;
-      try{
-      let places = await callAPI(url,poiLat,poiLon,query);
+      try {
+        let places = await callAPI(url, poiLat, poiLon, query);
 
-      if (places) {
-        for (const place of places) {
-          const lon = place.geometry.coordinates[1];
-          const lat = place.geometry.coordinates[0];
+        if (places) {
+          for (const place of places) {
+            const lon = place.geometry.coordinates[1];
+            const lat = place.geometry.coordinates[0];
 
-          let pin = viewer.entities.add({
-            name: 'mapPin',
-            position: Cesium.Cartesian3.fromDegrees(lon, lat, 2),
-            model: {
-              uri: './models/pin.glb',
-              heightReference: Cesium.HeightReference.RELATIVE_TO_3D_TILE,
-            },
-          });
+            let pin = viewer.entities.add({
+              name: 'mapPin',
+              position: Cesium.Cartesian3.fromDegrees(lon, lat, 2),
+              model: {
+                uri: './models/pin.glb',
+                heightReference: Cesium.HeightReference.RELATIVE_TO_3D_TILE,
+              },
+            });
+          }
         }
       }
-    }
-    catch{
-      console.log("Error calling API");
-    }
+      catch {
+        console.log("Error calling API");
+      }
 
     }
 
@@ -642,7 +682,7 @@
     function removeEntityWithName(entityName) {
       const entities = viewer.entities.values;
 
-      for (let i = entities.length-1; i >=0; i--) {
+      for (let i = entities.length - 1; i >= 0; i--) {
         if (entities[i].name === entityName) {
           viewer.entities.remove(entities[i]);
         }
@@ -684,12 +724,13 @@
       }
     }
 
-    function updateLabel(lon,lat,height, entityname){
+    function updateLabel(lon, lat, height, entityname) {
       const entities = viewer.entities.values;
       for (let i = 0; i < entities.length; i++) {
         if (entities[i].name === entityname) {
           entities[i].position = Cesium.Cartesian3.fromDegrees(lon, lat, height + 5);
-        }}
+        }
+      }
     }
 
     function updatePosition(message) {
@@ -710,7 +751,7 @@
         if (entities[i].name === entityName) {
           updateAgentTime(entityName);
           updateSphere(entityName + "sphere", lon, lat, height);
-          updateLabel(lon,lat,height,entityName+"label");
+          updateLabel(lon, lat, height, entityName + "label");
           // ---------------------------------
           // GeoPose camera orientation:
           // X forward to East, Y left to North, Z up to up, and identity looking to East
@@ -747,6 +788,22 @@
     window.Moricz = Moricz;
     window.connectRMQ = connectRMQ;
     window.searchForPOIS = searchForPOIS;
+
+    const toolbarSelect = document.getElementById("toolbarSelect");
+    const toolbars = [document.getElementById("toolbar"), document.getElementById("toolbar1"), document.getElementById("toolbar2")];
+
+    // Hide all toolbars initially
+    toolbars.forEach(tb => tb.style.display = "none");
+
+    toolbarSelect.addEventListener("change", function () {
+      // Hide all toolbars
+      toolbars.forEach(tb => tb.style.display = "none");
+
+      // Show only the selected one
+      if (this.value) {
+        document.getElementById(this.value).style.display = "block";
+      }
+    });
   </script>
 
 </body>
