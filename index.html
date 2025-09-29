@@ -182,6 +182,12 @@
     <label for="myToggle">Base connection</label>
   </div>
 
+  <div id="flyToCoordinate" style="position: absolute; top: 10px; left: 400px; z-index: 30; background: rgba(42, 42, 42, 0.7); padding: 10px">
+    <input type="text" placeholder="Latitude" id="latitude">
+    <input type="text" placeholder="Longitude" id="longitude">
+    <button onclick="Go()">Go</button>
+  </div>
+
   <div id="toolbar">
     <button onclick="Corvin()">Corvin</button>
     <button onclick="Moricz()">Moricz</button>
@@ -208,6 +214,7 @@
     <span id="vpsLabel" style="margin-left: 10px; font-family: sans-serif; color: rgb(255, 255, 255); padding:10px;">
       Ground Level (m)
     </span>
+    <button onclick="Localize()">Localize</button>
     <div id="statusText"></div>
   </div>
   <div id="toolbar2">
@@ -305,88 +312,125 @@
       fileInput.click();
     });
 
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (!file) return;
+async function Localize() {
+  try {
+    if (!canvas || !imageFile) {
+      console.log("No image selected yet.");
+      return;
+    }
 
-      const img = new Image();
-      const reader = new FileReader();
-      const canvas = document.createElement('canvas');
+    const base64String = canvas.toDataURL('image/jpeg');
+    const intrinsics = await getCameraIntrinsics(imageFile, targetWidth, targetHeight);
 
+    let cameraParams = new CameraParam();
+    cameraParams.model = CAMERAMODEL.PINHOLE;
+    cameraParams.modelParams = [intrinsics.fx, intrinsics.fy, intrinsics.cx, intrinsics.cy];
 
-      reader.onload = function (e) {
-        img.onload = async function () {
-          const width = img.width;
-          const height = img.height;
-          const base64Image = e.target.result;
+    fileInput.value = ''; // clear file input
+    const geoPoseRequest = new GeoPoseRequest(uuidv4());
 
-          //Maintaining aspect ratio
-          const aspectRatio = width / height;
-          const targetHeight = 1024;
-          const targetWidth = 1024 * aspectRatio;
+    geoPoseRequest
+      .addSensor(new Sensor("cam", SENSORTYPE.camera))
+      .addCameraData(
+        IMAGEFORMAT.JPG,
+        [targetWidth, targetHeight],
+        base64String.split(',')[1],
+        0,
+        new ImageOrientation(false, 0),
+        cameraParams,
+        new Date().getTime(),
+        "cam",
+        new Privacy()
+      );
 
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+    sendRequest(
+      baseConnected ? connectionDetails.vpsurl : document.getElementById("vpsurl").value,
+      JSON.stringify(geoPoseRequest)
+    )
+      .then(data => {
+        try {
+          console.log(data);
+          const statusDiv = document.getElementById("statusText");
+          const lat = data.geopose.position.lat;
+          const lon = data.geopose.position.lon;
+          let height = data.geopose.position.h;
+          const x = data.geopose.quaternion.x;
+          const y = data.geopose.quaternion.y;
+          const z = data.geopose.quaternion.z;
+          const w = data.geopose.quaternion.w;
 
-          try {
-            const base64String = canvas.toDataURL('image/jpeg');
-            const intrinsics = await getCameraIntrinsics(file, targetWidth, targetHeight);
+          const orientation = Cesium.HeadingPitchRoll.fromQuaternion(new Cesium.Quaternion(x, y, z, w));
+          const heading = Cesium.Math.toDegrees(orientation.heading);
+          const pitch = Cesium.Math.toDegrees(orientation.pitch);
+          const roll = Cesium.Math.toDegrees(orientation.roll);
 
-            let cameraParams = new CameraParam();
-            cameraParams.model = CAMERAMODEL.PINHOLE;
-            cameraParams.modelParams = [intrinsics.fx, intrinsics.fy, intrinsics.cx, intrinsics.cy];
-            fileInput.value = '';
-            const geoPoseRequest = new GeoPoseRequest(uuidv4());
-
-            geoPoseRequest
-              .addSensor(new Sensor("cam", SENSORTYPE.camera))
-              .addCameraData(IMAGEFORMAT.JPG, [width, height], base64String.split(',')[1], 0, new ImageOrientation(false, 0), cameraParams,
-                new Date().getTime(), "cam", new Privacy())
-            sendRequest(baseConnected ? connectionDetails.vpsurl : document.getElementById("vpsurl").value, JSON.stringify(geoPoseRequest))
-              .then(data => {
-                try {
-                  console.log(data);
-                  const statusDiv = document.getElementById("statusText");
-                  const lat = data.geopose.position.lat;
-                  const lon = data.geopose.position.lon;
-                  let height = data.geopose.position.h;
-                  const x = data.geopose.quaternion.x;
-                  const y = data.geopose.quaternion.y;
-                  const z = data.geopose.quaternion.z;
-                  const w = data.geopose.quaternion.w;
-                  const orientation = Cesium.HeadingPitchRoll.fromQuaternion(new Cesium.Quaternion(x, y, z, w));
-                  const heading = Cesium.Math.toDegrees(orientation.heading);
-                  const pitch = Cesium.Math.toDegrees(orientation.pitch);
-                  const roll = Cesium.Math.toDegrees(orientation.roll)
-                  let givenHeight = parseFloat(document.getElementById("vpsheight").value) + parseFloat(height);
-                  if (!givenHeight) {
-                    givenHeight = 0;
-                  }
-
-                  statusDiv.textContent = `Latitude: ${lat.toFixed(5)}, Longitude: ${lon.toFixed(5)}, Height: ${height.toFixed(2)} m, Heading: ${heading.toFixed(2)}°, Pitch: ${pitch.toFixed(2)}°, Roll: ${roll.toFixed(2)}°`;
-                  flyToImagePose(lat, lon, givenHeight, x, y, z, w);
-                }
-                catch {
-                  console.log("could not parse");
-                }
-              }).catch(err => {
-                console.log("Wrong VPS address or VPS error");
-                const statusDiv = document.getElementById("statusText");
-                statusDiv.textContent = 'Wrong VPS address or VPS error';
-              })
-          }
-          catch {
-            console.log("Could not get intrinsics");
+          let givenHeight = parseFloat(document.getElementById("vpsheight").value) + parseFloat(height);
+          if (!givenHeight) {
+            givenHeight = 0;
           }
 
-        };
-        img.src = e.target.result;
-      };
+          statusDiv.textContent =
+            `Latitude: ${lat.toFixed(5)}, Longitude: ${lon.toFixed(5)}, ` +
+            `Height: ${height.toFixed(2)} m, Heading: ${heading.toFixed(2)}°, ` +
+            `Pitch: ${pitch.toFixed(2)}°, Roll: ${roll.toFixed(2)}°`;
 
-      reader.readAsDataURL(file);
-    });
+          flyToImagePose(lat, lon, givenHeight, x, y, z, w);
+        } catch {
+          console.log("Could not parse VPS response");
+        }
+      })
+      .catch(err => {
+        console.log("Wrong VPS address or VPS error:", err);
+        const statusDiv = document.getElementById("statusText");
+        statusDiv.textContent = 'Wrong VPS address or VPS error';
+      });
+  } catch (err) {
+    console.log("Could not get intrinsics:", err);
+  }
+}
+
+
+    //Image parameters
+let imageFile;       // the raw file
+let imageElement;    // the Image() object
+let canvas;          // the drawing canvas
+let ctx;             // canvas context
+let targetWidth;
+let targetHeight;
+let base64Image;     // base64 string
+
+fileInput.addEventListener('change', () => {
+  imageFile = fileInput.files[0];  // assign globally
+  if (!imageFile) return;
+
+  imageElement = new Image();      // assign globally
+  const reader = new FileReader();
+  canvas = document.createElement('canvas');  // assign globally
+  ctx = canvas.getContext('2d');
+
+  reader.onload = function (e) {
+    imageElement.onload = async function () {
+      const width = imageElement.width;
+      const height = imageElement.height;
+      base64Image = e.target.result; // assign globally
+
+      // Maintaining aspect ratio
+      const aspectRatio = width / height;
+      targetHeight = 1024;
+      targetWidth = 1024 * aspectRatio;
+
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      ctx.drawImage(imageElement, 0, 0, targetWidth, targetHeight);
+
+      console.log("Image ready:", { imageFile, targetWidth, targetHeight, base64Image });
+    };
+
+    imageElement.src = e.target.result;
+  };
+
+  reader.readAsDataURL(imageFile);
+});
 
     // Replace this with your actual Cesium Ion access token
     Cesium.Ion.defaultAccessToken = CesiumToken;
@@ -524,6 +568,24 @@
 
       return data.features;
     }
+
+    function Go(){
+      let lat = document.getElementById("latitude").value;
+      let lon = document.getElementById("longitude").value;
+      if(!lat || !lon){
+        console.log("No coordinates given");
+        return
+      }
+      viewer.scene.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+          lon,
+          lat,
+          50
+        ),
+        duration: 3,
+      })
+    }
+
     function flyToImagePose(lat, lon, height, x, y, z, w) {
       let quaternion = new Cesium.Quaternion(x, y, z, w);
       let cameraOrientation = Cesium.HeadingPitchRoll.fromQuaternion(quaternion);
@@ -788,6 +850,8 @@
     window.Moricz = Moricz;
     window.connectRMQ = connectRMQ;
     window.searchForPOIS = searchForPOIS;
+    window.Localize = Localize;
+    window.Go = Go;
 
     const toolbarSelect = document.getElementById("toolbarSelect");
     const toolbars = [document.getElementById("toolbar"), document.getElementById("toolbar1"), document.getElementById("toolbar2")];
