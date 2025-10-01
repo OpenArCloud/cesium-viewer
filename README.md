@@ -17,15 +17,18 @@ Use the port you want the application to run on. If you are deploying it set the
 
 ## Run locally
 
+In `vite.config.js` edit your port number and add your domain name to allowed hosts.
+
+```
 npm install
-npm run dev --  --host --port 8049
-
+npm run dev --  --host --port YOUR_EXTERNAL_PORT
+```
 ## Run with docker
-
+```
 TAG=oarc_cesium_viewer
-docker build -t $TAG
-docker run $TAG -p 8049:8044
-
+docker build . -t $TAG
+docker run -p YOUR_EXTERNAL_PORT:8044 -d $TAG:latest
+```
 You can set the port to what best fits you requirements
 
 # Using the Cesium viewer
