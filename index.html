@@ -430,6 +430,11 @@
             targetWidth,
             targetHeight
           );
+          console.log("EXIF Intrinsics: ", intrinsics)
+          if (intrinsics === null) {
+            alert(`Could not read camera intrinsics from the image! Please select an image with EXIF information`);
+            return;
+          }
 
           let cameraParams = new CameraParam();
           cameraParams.model = CAMERAMODEL.PINHOLE;
@@ -440,11 +445,19 @@
             intrinsics.cy,
           ];
 
-          fileInput.value = ""; // clear file input
-          const geoPoseRequest = new GeoPoseRequest(uuidv4());
+          const geolocationInfo = await getGeolocationInfo(imageFile);
+          console.log("EXIF Geolocation: ", geolocationInfo)
+          if (geolocationInfo === null) {
+            alert(`Could not read geolocation from the image! Please select an image with EXIF information`);
+            return;
+          }
 
+          fileInput.value = ""; // clear file input
+
+          // See https://github.com/OpenArCloud/gpp-access/blob/main/lib/request/GeoPoseRequest.ts
+          const geoPoseRequest = new GeoPoseRequest(uuidv4());
           geoPoseRequest
-            .addSensor(new Sensor("cam", SENSORTYPE.camera))
+            .addSensor(new Sensor("myCamera", SENSORTYPE.camera))
             .addCameraData(
               IMAGEFORMAT.JPG,
               [targetWidth, targetHeight],
@@ -453,9 +466,25 @@
               new ImageOrientation(false, 0),
               cameraParams,
               new Date().getTime(),
-              "cam",
+              "myCamera",
               new Privacy()
+            )
+            .addSensor(new Sensor("myGps", SENSORTYPE.geolocation))
+            .addGeoLocationData(
+              geolocationInfo.lat, // latAngle
+              geolocationInfo.lon, // lonAngle
+              geolocationInfo.h, // alt
+              0, // accuracy
+              0, // altAccuracy
+              0, // heading
+              0, // speed
+              geolocationInfo.timestamp, // timestamp
+              "myGps", // sensorId
+              new Privacy() // privacy
             );
+
+          // TODO: the camera timestamp should be read from the EXIF
+          // read the DateTimeOriginal and OffsetTime tags, and then converted to posixTimeMillis
 
           sendRequest(
             document.getElementById("vpsurl").value,
@@ -507,7 +536,7 @@
               statusDiv.textContent = "Wrong VPS address or VPS error";
             });
         } catch (err) {
-          console.log("Could not get intrinsics:", err);
+          console.log("Could not send localization request due to error: ", err);
         }
       }
 
@@ -576,11 +605,104 @@
           CreativeModeEnabled = this.checked;
         });
 
+      function convertDMSToDD(degrees, minutes, seconds, direction) {
+        let dd = degrees + minutes / 60 + seconds / (60 * 60);
+        if (direction === "S" || direction === "W") {
+          dd = dd * -1;
+        }
+        // Don't do anything for N or E
+
+        //console.log("convertDMSToDD")
+        //console.log("  degrees: ", degrees)
+        //console.log("  minutes: ", minutes)
+        //console.log("  seconds: ", seconds)
+        //console.log("  direction: ", direction)
+        //console.log("  output: ", dd)
+        return dd;
+      }
+
+      async function getGeolocationInfo(file) {
+        // TODO: https://github.com/MikeKovarik/exifr seems significantly easier to use
+        try {
+          let geolocationData = null;
+          await ExifReader.load(file || url, { async: true }).then(function (tags) {
+            // See all tags here: https://exiftool.org/TagNames/GPS.html
+            //console.log(tags);
+
+            const gpsLatitudeRef = tags["GPSLatitudeRef"].value[0]; // N or S
+            const gpsLatitudeDMS = tags["GPSLatitude"].value;
+            // GPSLatitude value is a 3-array of [degrees, minutes, seconds], where each of them is a rational in form [num, denom]
+            // but the description is a single float
+            const latitude = convertDMSToDD(
+              gpsLatitudeDMS[0][0] / gpsLatitudeDMS[0][1],
+              gpsLatitudeDMS[1][0] / gpsLatitudeDMS[1][1],
+              gpsLatitudeDMS[2][0] / gpsLatitudeDMS[2][1],
+              gpsLatitudeRef
+            );
+            //const latitude = tags["GPSLatitude"].description
+            const gpsLongitudeRef = tags["GPSLongitudeRef"].value[0]; // E or W
+            const gpsLongitudeDMS = tags["GPSLongitude"].value;
+            // GPSLongitude value is a 3-array of [degrees, minutes, seconds], where each of them is a rational in form [num, denom]
+            // but the description is a single float
+            const longitude = convertDMSToDD(
+              gpsLongitudeDMS[0][0] / gpsLongitudeDMS[0][1],
+              gpsLongitudeDMS[1][0] / gpsLongitudeDMS[1][1],
+              gpsLongitudeDMS[2][0] / gpsLongitudeDMS[2][1],
+              gpsLongitudeRef
+            );
+            //const longitude = tags["GPSLongitude"].description;
+
+            const gpsAltitudeRef = tags["GPSAltitudeRef"].value;
+            // GPSAltitudeRef value is an integer between 0 and 3
+            // 0 = Above Sea Level, 1 = Below Sea Level,
+            // 2 = Positive Sea Level (sea-level ref), 3 = Negative Sea Level (sea-level ref)
+            let gpsAltitude = tags["GPSAltitude"].value[0] / tags["GPSAltitude"].value[1];
+            // GPSAltutude value is a rational in form [num, denom]
+            if (gpsAltitudeRef == 1 || gpsAltitudeRef == 3) {
+              gpsAltitude = gpsAltitude * -1;
+            }
+            // WARNING: GeoPose uses height above WGS84 ellipsoid, not sea level -- we are introducing an error here
+            // we should look up in some GIS database the difference between ellipsoidheight and sea level height at the given location
+
+            const gpsImgDirectionRef = tags["GPSImgDirectionRef"].value[0] // 'M' = Magnetic North, 'T' = True North
+            let gpsImgDirection = tags["GPSImgDirection"].value[0] / tags["GPSImgDirection"].value[1]
+            //GPSImgDirection value is a rational in form [num, denom]
+            //gpsImgDirection = (90 + gpsImgDirection) % 360
+            // WARNING: the GeoPose standard measures camera orientation w.r.t East and not North! So we need to add 90 degrees offset.
+
+            const gpsDateStampString = String(tags["GPSDateStamp"].value) // string in form "YYYY:mm:dd"
+            const year = gpsDateStampString.split(':')[0]
+            const month = gpsDateStampString.split(':')[1]
+            const day = gpsDateStampString.split(':')[2]
+            const gpsTimestampArray = tags["GPSTimeStamp"].value // UTC time in form of rational 3-array [H, M, S]
+            const hour = String(gpsTimestampArray[0][0] / gpsTimestampArray[0][1]).padStart(2, "0");
+            const minute = String(gpsTimestampArray[1][0] / gpsTimestampArray[1][1]).padStart(2, "0");
+            const second = String(gpsTimestampArray[2][0] / gpsTimestampArray[2][1]).padStart(2, "0");
+            const dateString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+            console.log(dateString)
+            const date = new Date(dateString);
+            const posixTimeMillis = date.getTime();
+            console.log(posixTimeMillis);
+
+            geolocationData = {
+              lat: latitude,
+              lon: longitude,
+              h: gpsAltitude, // TODO: send ellipsoid height instead of sea level height?
+              heading: gpsImgDirection, // TODO: add 90deg offset or not?
+              timestamp: posixTimeMillis
+            };
+          });
+          return geolocationData;
+        } catch (error) {
+          console.log(`Could not get geolocation from EXIF of photo: ${error}`);
+          return null;
+        }
+      }
+
       async function getCameraIntrinsics(file, width, height) {
         const ratio = width / height;
         let sensorWidth;
         let sensorHeight;
-        let focalLength;
         if (ratio >= 1) {
           sensorWidth = 35;
           sensorHeight = 35 / ratio;
@@ -589,9 +711,9 @@
           sensorWidth = 35 * ratio;
         }
         try {
-          await ExifReader.load(file || url, { async: true }).then(function (
-            tags
-          ) {
+          let focalLength;
+          await ExifReader.load(file || url, { async: true }).then(function (tags) {
+            // See https://exiftool.org/TagNames/EXIF.html
             focalLength = tags["FocalLengthIn35mmFilm"].value;
           });
 
@@ -606,12 +728,13 @@
             cx: cx,
             cy: cy,
           };
-
           return intrinsics;
-        } catch {
-          console.log("Could not get Focal length");
+        } catch (error) {
+          console.log(`Could not get camera intrinsics from EXIF of photo" ${error}`);
+          return null;
         }
       }
+
       async function getTileset() {
         try {
           const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(tileID, {
