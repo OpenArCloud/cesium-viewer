@@ -431,6 +431,12 @@
             targetHeight
           );
 
+                    console.log("EXIF Intrinsics: ", intrinsics)
+          if (intrinsics === null) {
+            alert(`Could not read camera intrinsics from the image! Please select an image with EXIF information`);
+            return;
+          }
+
           let cameraParams = new CameraParam();
           cameraParams.model = CAMERAMODEL.PINHOLE;
           cameraParams.modelParams = [
@@ -440,11 +446,19 @@
             intrinsics.cy,
           ];
 
-          fileInput.value = ""; // clear file input
-          const geoPoseRequest = new GeoPoseRequest(uuidv4());
+          const geolocationInfo = await getGeolocationInfo(imageFile);
+          console.log("EXIF Geolocation: ", geolocationInfo)
+          if (geolocationInfo === null) {
+            alert(`Could not read geolocation from the image! Please select an image with EXIF information`);
+            return;
+          }
 
+          fileInput.value = ""; // clear file input
+
+          // See https://github.com/OpenArCloud/gpp-access/blob/main/lib/request/GeoPoseRequest.ts
+          const geoPoseRequest = new GeoPoseRequest(uuidv4());
           geoPoseRequest
-            .addSensor(new Sensor("cam", SENSORTYPE.camera))
+            .addSensor(new Sensor("myCamera", SENSORTYPE.camera))
             .addCameraData(
               IMAGEFORMAT.JPG,
               [targetWidth, targetHeight],
@@ -453,9 +467,25 @@
               new ImageOrientation(false, 0),
               cameraParams,
               new Date().getTime(),
-              "cam",
+              "myCamera",
               new Privacy()
+            )
+            .addSensor(new Sensor("myGps", SENSORTYPE.geolocation))
+            .addGeoLocationData(
+              geolocationInfo.lat, // latAngle
+              geolocationInfo.lon, // lonAngle
+              geolocationInfo.h, // alt
+              0, // accuracy
+              0, // altAccuracy
+              0, // heading
+              0, // speed
+              geolocationInfo.timestamp, // timestamp
+              "myGps", // sensorId
+              new Privacy() // privacy
             );
+
+          // TODO: the camera timestamp should be read from the EXIF
+          // read the DateTimeOriginal and OffsetTime tags, and then converted to posixTimeMillis
 
           sendRequest(
             document.getElementById("vpsurl").value,
@@ -507,7 +537,7 @@
               statusDiv.textContent = "Wrong VPS address or VPS error";
             });
         } catch (err) {
-          console.log("Could not get intrinsics:", err);
+          console.log("Could not send localization request due to error: ", err);
         }
       }
 
@@ -576,7 +606,7 @@
           CreativeModeEnabled = this.checked;
         });
 
-        function convertDMSToDD(degrees, minutes, seconds, direction) {
+      function convertDMSToDD(degrees, minutes, seconds, direction) {
         let dd = degrees + minutes / 60 + seconds / (60 * 60);
         if (direction === "S" || direction === "W") {
           dd = dd * -1;
@@ -669,12 +699,11 @@
           return null;
         }
       }
-      
+
       async function getCameraIntrinsics(file, width, height) {
         const ratio = width / height;
         let sensorWidth;
         let sensorHeight;
-        let focalLength;
         if (ratio >= 1) {
           sensorWidth = 35;
           sensorHeight = 35 / ratio;
@@ -683,9 +712,9 @@
           sensorWidth = 35 * ratio;
         }
         try {
-          await ExifReader.load(file || url, { async: true }).then(function (
-            tags
-          ) {
+          let focalLength;
+          await ExifReader.load(file || url, { async: true }).then(function (tags) {
+            // See https://exiftool.org/TagNames/EXIF.html
             focalLength = tags["FocalLengthIn35mmFilm"].value;
           });
 
@@ -700,10 +729,10 @@
             cx: cx,
             cy: cy,
           };
-
           return intrinsics;
-        } catch {
-          console.log("Could not get Focal length");
+        } catch (error) {
+          console.log(`Could not get camera intrinsics from EXIF of photo" ${error}`);
+          return null;
         }
       }
       async function getTileset() {
