@@ -190,8 +190,56 @@
         <option value="toolbar">RMQ</option>
         <option value="toolbar1">VPS</option>
         <option value="toolbar2">POI</option>
+        <option value="MapAligner">Map Aligner</option>
       </select>
     </div>
+    <div id="MapAligner" style="color: white;
+    position: absolute;
+    top: 80px;
+    left: 10px;
+    background: rgba(42, 42, 42, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 20;">
+
+  <h3>Map Aligner</h3>
+
+  <!-- Model Upload -->
+  <input type="file" id="modelFileInput" accept=".glb,.gltf,.obj" />
+  <br />
+  <input type="text" placeholder="3D Model URL" id="modelUrl" />
+  <button onclick="loadModelFromURL()">Load from URL</button>
+  <br /><br />
+  <div id="poiSearchText"></div>
+  <br /><br />
+  <!-- Model Controls -->
+  <label for="positionStep"><strong>Position step (° lat/lon):</strong></label>
+  <input type="number" id="positionStep" value="0.00005" min="0.0000001" step="0.00001" style="width:80px;">
+  <br /><br />
+  <label for="heightStep"><strong>Height step (m):</strong></label>
+  <input type="number" id="heightStep" value="1" min="0.01" step="0.01" style="width:70px;">
+  <br /><br />
+  <button onclick="moveModel('up')">UP ↑</button>
+  <button onclick="moveModel('down')">DOWN ↓</button>
+  <br />
+  <button onclick="moveModel('west')">WEST ←</button>
+  <button onclick="moveModel('east')">EAST →</button>
+  <br />
+  <button onclick="moveModel('north')">NORTH ⤴</button>
+  <button onclick="moveModel('south')">SOUTH ⤵</button>
+  <br /><br />
+  <label for="rotationStep"><strong>Rotation step size:</strong></label>
+  <input type="number" id="rotationStep" value="5" min="0.1" max="90" step="0.1" style="width:60px;">°
+  <br /><br />
+  <button onclick="rotateModel('left')">⟲ Yaw Left</button>
+  <button onclick="rotateModel('right')">⟳ Yaw Right</button>
+  <br />
+  <button onclick="adjustPitch('up')">Pitch ↑</button>
+  <button onclick="adjustPitch('down')">Pitch ↓</button>
+  <br />
+  <button onclick="adjustRoll('left')">Roll ←</button>
+  <button onclick="adjustRoll('right')">Roll →</button>
+  </div>
     <div
       id="baseToggle"
       style="
@@ -357,6 +405,9 @@
       const output = document.getElementById("base64Output");
 
       let connectionDetails;
+      let mapLatitude = 0;
+      let mapLongitude = 0;
+      let mapHeight = 0;
 
       fetch("connect.json")
         .then((response) => response.json())
@@ -430,8 +481,7 @@
             targetWidth,
             targetHeight
           );
-
-                    console.log("EXIF Intrinsics: ", intrinsics)
+          console.log("EXIF Intrinsics: ", intrinsics)
           if (intrinsics === null) {
             alert(`Could not read camera intrinsics from the image! Please select an image with EXIF information`);
             return;
@@ -735,6 +785,7 @@
           return null;
         }
       }
+
       async function getTileset() {
         try {
           const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(tileID, {
@@ -756,6 +807,9 @@
         const lat = Cesium.Math.toDegrees(cartographic.latitude);
         const lon = Cesium.Math.toDegrees(cartographic.longitude);
         const height = cartographic.height;
+        mapHeight = height;
+        mapLatitude = lat;
+        mapLongitude = lon;
         const statusDiv = document.getElementById("poiSearchText");
         statusDiv.textContent = `Chosen coordinates: Lat: ${lat.toFixed(
           5
@@ -1137,7 +1191,209 @@
         document.getElementById("toolbar"),
         document.getElementById("toolbar1"),
         document.getElementById("toolbar2"),
+        document.getElementById("MapAligner"),
       ];
+
+// ----------------------------------------
+// 3D MODEL HANDLING IN MAPALIGNER (FIXED)
+// ----------------------------------------
+
+let models = {};
+let selectedModel = null;
+let modelCounter = 0;
+
+// ==============================
+// FILE UPLOAD HANDLER
+// ==============================
+document.getElementById("modelFileInput").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  loadModel(url, true);
+});
+
+// ==============================
+// LOAD MODEL FROM USER-ENTERED URL
+// ==============================
+window.loadModelFromURL = function () {
+  const url = document.getElementById("modelUrl").value.trim();
+  if (url) {
+    loadModel(url);
+  } else {
+    alert("Please enter a valid model URL!");
+  }
+};
+
+// ==============================
+// MAIN MODEL LOADER
+// ==============================
+function loadModel(modelUrl, revokeAfter = false) {
+  if (typeof mapLongitude === "undefined" || typeof mapLatitude === "undefined" || typeof mapHeight === "undefined") {
+    alert("Map coordinates are not defined!");
+    return;
+  }
+
+  const position = Cesium.Cartesian3.fromDegrees(mapLongitude, mapLatitude, mapHeight);
+  const hpr = new Cesium.HeadingPitchRoll(0, 0, 0);
+  const modelName = "userModel_" + modelCounter++;
+
+  const entity = viewer.entities.add({
+    name: modelName,
+    position: position,
+    orientation: Cesium.Transforms.headingPitchRollQuaternion(position, hpr),
+    model: {
+      uri: modelUrl,
+      scale: 1.0,
+      minimumPixelSize: 0,
+      maximumScale: 1.0,
+    },
+  });
+
+  const modelObj = {
+    name: modelName,
+    entity: entity,
+    position: position,
+    heading: 0,
+    pitch: 0,
+    roll: 0,
+  };
+
+  models[modelName] = modelObj;
+  selectedModel = modelObj;
+
+  if (revokeAfter) {
+    // Clean up memory once Cesium has loaded the file
+    setTimeout(() => URL.revokeObjectURL(modelUrl), 5000);
+  }
+
+  console.log(`Model loaded: ${modelName}`);
+}
+
+// ==============================
+// MODEL SELECTION (CLICK HANDLER)
+// ==============================
+const modelClickHandler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+
+modelClickHandler.setInputAction((click) => {
+  const picked = viewer.scene.pick(click.position);
+
+  if (Cesium.defined(picked) && picked.id && models[picked.id.name]) {
+    selectedModel = models[picked.id.name];
+    console.log("Selected model:", selectedModel.name);
+  } else {
+    selectedModel = null;
+    console.log("No model selected");
+  }
+}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+// ==============================
+// MOVEMENT CONTROLS
+// ==============================
+window.moveModel = function (direction) {
+  if (!selectedModel) return alert("No model selected!");
+
+  const carto = Cesium.Cartographic.fromCartesian(selectedModel.position);
+  const latLonStep = parseFloat(document.getElementById("positionStep").value) || 0.0005;
+  const heightStep = parseFloat(document.getElementById("heightStep").value) || 1;
+
+  switch (direction) {
+    case "north": carto.latitude += Cesium.Math.toRadians(latLonStep); break;
+    case "south": carto.latitude -= Cesium.Math.toRadians(latLonStep); break;
+    case "east":  carto.longitude += Cesium.Math.toRadians(latLonStep); break;
+    case "west":  carto.longitude -= Cesium.Math.toRadians(latLonStep); break;
+    case "up":    carto.height += heightStep; break;
+    case "down":  carto.height -= heightStep; break;
+  }
+
+  selectedModel.position = Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, carto.height);
+  updateModelTransform(selectedModel);
+};
+
+// ==============================
+// ROTATION CONTROLS
+// ==============================
+function getRotationStep() {
+  return Cesium.Math.toRadians(parseFloat(document.getElementById("rotationStep").value) || 5);
+}
+
+// Rotate Heading (Yaw)
+window.rotateModel = function (direction) {
+  if (!selectedModel) return alert("No model selected!");
+  const step = getRotationStep();
+  selectedModel.heading += (direction === "left" ? -step : step);
+  updateModelTransform(selectedModel);
+};
+
+// Adjust Pitch
+window.adjustPitch = function (direction) {
+  if (!selectedModel) return alert("No model selected!");
+  const step = getRotationStep();
+  selectedModel.pitch += (direction === "up" ? step : -step);
+  updateModelTransform(selectedModel);
+};
+
+// Adjust Roll
+window.adjustRoll = function (direction) {
+  if (!selectedModel) return alert("No model selected!");
+  const step = getRotationStep();
+  selectedModel.roll += (direction === "right" ? step : -step);
+  updateModelTransform(selectedModel);
+};
+
+// ==============================
+// TRANSFORM UPDATER
+// ==============================
+function updateModelTransform(modelObj) {
+  if (!modelObj || !modelObj.entity) return;
+
+  const hpr = new Cesium.HeadingPitchRoll(
+    modelObj.heading,
+    modelObj.pitch,
+    modelObj.roll
+  );
+
+  modelObj.entity.position = modelObj.position;
+  modelObj.entity.orientation = Cesium.Transforms.headingPitchRollQuaternion(
+    modelObj.position,
+    hpr
+  );
+}
+
+// ==============================
+// UTILITY FUNCTIONS
+// ==============================
+window.getHeightStep = function () {
+  return parseFloat(document.getElementById("heightStep").value) || 1;
+};
+// ==============================
+// DELETE SELECTED MODEL
+// ==============================
+window.deleteSelectedModel = function () {
+  if (!selectedModel) {
+    alert("No model selected!");
+    return;
+  }
+
+  const confirmDelete = confirm(`Delete model "${selectedModel.name}"?`);
+  if (!confirmDelete) return;
+
+  // Remove from Cesium viewer
+  viewer.entities.remove(selectedModel.entity);
+
+  // Remove from models dictionary
+  delete models[selectedModel.name];
+
+  console.log(`Deleted model: ${selectedModel.name}`);
+  selectedModel = null;
+};
+
+document.addEventListener("keydown", (e) => {
+  if ((e.key === "Delete" || e.key === "Backspace") && selectedModel) {
+    deleteSelectedModel();
+  }
+});
+
 
       // Hide all toolbars initially
       toolbars.forEach((tb) => (tb.style.display = "none"));
