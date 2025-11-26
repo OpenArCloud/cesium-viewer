@@ -10,6 +10,9 @@
     <!-- CesiumJS Script -->
     <script src="./Build/Cesium/Cesium.js"></script>
 
+    <script src="./auth.js"></script>
+
+    <script src="./wrapper.js"></script>
     <!-- Custom Styles -->
     <style>
       html,
@@ -210,11 +213,19 @@
   <input type="text" placeholder="3D Model URL" id="modelUrl" />
   <button onclick="loadModelFromURL()">Load from URL</button>
   <br /><br />
-  <div id="poiSearchText"></div>
+  <div id="coordinatesText"></div>
+  <br />
+  <input type="checkbox" id="coordinateToggle" />
+  <label for="coordinateToggle">Enable to choose coordinates from click</label>
+  <br /><br />
+  <button id="sendBtn" onclick="saveMatrix()">Save Data</button>
   <br /><br />
   <!-- Model Controls -->
+  <label for="modelScale"><strong>Scale:</strong></label>
+  <input type="number" id="modelScale" value="1" min="0.1" step="0.1" style="width:70px;">
+  <br /><br />
   <label for="positionStep"><strong>Position step (° lat/lon):</strong></label>
-  <input type="number" id="positionStep" value="0.00005" min="0.0000001" step="0.00001" style="width:80px;">
+  <input type="number" id="positionStep" value="10" min="0.1" step="1" style="width:80px;">*e-6
   <br /><br />
   <label for="heightStep"><strong>Height step (m):</strong></label>
   <input type="number" id="heightStep" value="1" min="0.01" step="0.01" style="width:70px;">
@@ -239,6 +250,11 @@
   <br />
   <button onclick="adjustRoll('left')">Roll ←</button>
   <button onclick="adjustRoll('right')">Roll →</button>
+  <br /><br />
+  <button onclick="exportModelMatrix()">Export Matrix JSON</button>
+  <br /><br />
+  <button id="loginBtn" onclick="login()">Login</button>
+  <button id="logoutBtn" onclick="logout()" style="display:none">Logout</button>
   </div>
     <div
       id="baseToggle"
@@ -363,6 +379,8 @@
       const tileID = 2275207;
       //------------------
 
+      import { getTransform, postTransform } from "./wrapper.js";
+      import { login, logout, handleRedirect, getUserInfo } from "./auth.js";
       import { v4 as uuidv4 } from "uuid";
       import {
         CesiumWidget,
@@ -424,7 +442,13 @@
         if (!connectionDetails) {
           console.log("Error: no config.json was found");
           return;
-        }
+        }});
+      
+      let chooseCoordinatesEnable = false;
+      const coordinateToggle = document.getElementById("coordinateToggle");
+      coordinateToggle.addEventListener("change", function () {
+        chooseCoordinatesEnable = this.checked;
+        console.log("Choose coordinates by click:", chooseCoordinatesEnable);
 
         if (baseConnected) {
           document.getElementById("rmqurl").value = connectionDetails.rmqurl;
@@ -807,9 +831,16 @@
         const lat = Cesium.Math.toDegrees(cartographic.latitude);
         const lon = Cesium.Math.toDegrees(cartographic.longitude);
         const height = cartographic.height;
+        if(chooseCoordinatesEnable){
         mapHeight = height;
         mapLatitude = lat;
         mapLongitude = lon;
+
+        const coordinatesText = document.getElementById("coordinatesText");
+        coordinatesText.textContent = `Chosen coordinates: Lat: ${lat.toFixed(
+          5
+        )}, Lon: ${lon.toFixed(5)}, Height: ${height.toFixed(2)}`;
+        }
         const statusDiv = document.getElementById("poiSearchText");
         statusDiv.textContent = `Chosen coordinates: Lat: ${lat.toFixed(
           5
@@ -1214,6 +1245,14 @@ document.getElementById("modelFileInput").addEventListener("change", (event) => 
 });
 
 // ==============================
+// SCALE
+// ==============================
+document.getElementById("modelScale").addEventListener("change", (event) => {
+  selectedModel.scale = document.getElementById("modelScale").value;
+  updateModelTransform(selectedModel);
+});
+
+// ==============================
 // LOAD MODEL FROM USER-ENTERED URL
 // ==============================
 window.loadModelFromURL = function () {
@@ -1246,24 +1285,33 @@ function loadModel(modelUrl, revokeAfter = false) {
       uri: modelUrl,
       scale: 1.0,
       minimumPixelSize: 0,
-      maximumScale: 1.0,
     },
   });
 
+  // New extended model object
   const modelObj = {
     name: modelName,
-    entity: entity,
-    position: position,
+    startPosition: {lat: mapLatitude, lon: mapLongitude},
+    entity,
+    position,
     heading: 0,
     pitch: 0,
     roll: 0,
+    translation: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    scale: 1.0,
+    matrix: [
+      [1, 0, 0, 0],
+      [0, 1, 0, 0],
+      [0, 0, 1, 0],
+      [0, 0, 0, 1],
+    ],
   };
 
   models[modelName] = modelObj;
   selectedModel = modelObj;
 
   if (revokeAfter) {
-    // Clean up memory once Cesium has loaded the file
     setTimeout(() => URL.revokeObjectURL(modelUrl), 5000);
   }
 
@@ -1294,7 +1342,7 @@ window.moveModel = function (direction) {
   if (!selectedModel) return alert("No model selected!");
 
   const carto = Cesium.Cartographic.fromCartesian(selectedModel.position);
-  const latLonStep = parseFloat(document.getElementById("positionStep").value) || 0.0005;
+  const latLonStep = parseFloat(document.getElementById("positionStep").value/1000000) || 10;
   const heightStep = parseFloat(document.getElementById("heightStep").value) || 1;
 
   switch (direction) {
@@ -1347,17 +1395,71 @@ window.adjustRoll = function (direction) {
 function updateModelTransform(modelObj) {
   if (!modelObj || !modelObj.entity) return;
 
-  const hpr = new Cesium.HeadingPitchRoll(
-    modelObj.heading,
-    modelObj.pitch,
-    modelObj.roll
-  );
+  // Ensure numeric radians
+  const heading = Number(modelObj.heading) || 0;
+  const pitch = Number(modelObj.pitch) || 0;
+  const roll = Number(modelObj.roll) || 0;
 
+  // Update Cesium orientation
+  const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
   modelObj.entity.position = modelObj.position;
-  modelObj.entity.orientation = Cesium.Transforms.headingPitchRollQuaternion(
-    modelObj.position,
-    hpr
-  );
+  modelObj.entity.orientation = Cesium.Transforms.headingPitchRollQuaternion(modelObj.position, hpr);
+  modelObj.entity.model.scale = modelObj.scale;
+
+  // Approximate translation in local tangent plane (for logging/export)
+  const carto = Cesium.Cartographic.fromCartesian(modelObj.position);
+  const R = 6378137.0; // WGS84 mean Earth radius
+
+  const refLat = Cesium.Math.toRadians(mapLatitude);
+  const refLon = Cesium.Math.toRadians(mapLongitude);
+  const curLat = carto.latitude;
+  const curLon = carto.longitude;
+
+  const dLat = curLat - refLat;
+  const dLon = curLon - refLon;
+
+  const x = dLon * R * window.Math.cos(refLat); // East (meters)
+  const y = dLat * R;                           // North (meters)
+  const z = carto.height - mapHeight;           // Up (meters)
+
+  modelObj.translation = { x, y, z };
+
+  // Store rotation in degrees (for readability)
+  modelObj.rotation = {
+    x: Cesium.Math.toDegrees(pitch),
+    y: Cesium.Math.toDegrees(roll),
+    z: Cesium.Math.toDegrees(heading),
+  };
+
+  // Compute rotation * scale matrix (Heading–Pitch–Roll order)
+  const cosH = window.Math.cos(heading);
+  const sinH = window.Math.sin(heading);
+  const cosP = window.Math.cos(pitch);
+  const sinP = window.Math.sin(pitch);
+  const cosR = window.Math.cos(roll);
+  const sinR = window.Math.sin(roll);
+  const s = Number(modelObj.scale) || 1.0;
+
+  // Cesium HPR rotation order: heading (Z), pitch (X), roll (Y)
+  const m11 = s * (cosH * cosR + sinH * sinP * sinR);
+  const m12 = s * (sinR * cosP);
+  const m13 = s * (-sinH * cosR + cosH * sinP * sinR);
+  const m21 = s * (-cosH * sinR + sinH * sinP * cosR);
+  const m22 = s * (cosR * cosP);
+  const m23 = s * (sinR * sinH + cosH * sinP * cosR);
+  const m31 = s * (sinH * cosP);
+  const m32 = s * (-sinP);
+  const m33 = s * (cosH * cosP);
+
+  modelObj.matrix = [
+    [m11, m12, m13, modelObj.translation.x],
+    [m21, m22, m23, modelObj.translation.y],
+    [m31, m32, m33, modelObj.translation.z],
+    [0, 0, 0, 1],
+  ];
+
+  // Optional debug
+  console.log("Updated transform for", modelObj.name, modelObj.matrix);
 }
 
 // ==============================
@@ -1366,6 +1468,59 @@ function updateModelTransform(modelObj) {
 window.getHeightStep = function () {
   return parseFloat(document.getElementById("heightStep").value) || 1;
 };
+
+window.exportModelMatrix = async function () {
+  if (!selectedModel) {
+    alert("No model selected!");
+    return;
+  }
+
+  const json = {
+    latitude: selectedModel.startPosition.lat,
+    longitude: selectedModel.startPosition.lon,
+    height: mapHeight,
+    matrix: selectedModel.matrix
+  };
+
+  const jsonString = JSON.stringify(json, null, 2);
+  const fileName = selectedModel.name + "_matrix.json";
+
+  // Check browser support
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [
+          {
+            description: "JSON file",
+            accept: { "application/json": [".json"] }
+          }
+        ]
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(jsonString);
+      await writable.close();
+
+      console.log("Saved JSON using showSaveFilePicker.");
+      return;
+    } catch (error) {
+      console.warn("showSaveFilePicker failed, falling back:", error);
+    }
+  }
+
+  // Fallback: old behavior ("Save As..." dialog)
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+
+  URL.revokeObjectURL(url);
+};
+
 // ==============================
 // DELETE SELECTED MODEL
 // ==============================
@@ -1389,11 +1544,53 @@ window.deleteSelectedModel = function () {
 };
 
 document.addEventListener("keydown", (e) => {
-  if ((e.key === "Delete" || e.key === "Backspace") && selectedModel) {
+  if ((e.key === "Delete") && selectedModel) {
     deleteSelectedModel();
   }
 });
 
+  await handleRedirect();
+
+  const user = await getUserInfo();
+
+  if (user) {
+    console.log("User logged in:", user);
+    document.getElementById("loginBtn").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "block";
+  } else {
+    console.log("User not logged in");
+    document.getElementById("loginBtn").style.display = "block";
+    document.getElementById("logoutBtn").style.display = "none";
+  }
+
+  window.login = login;
+  window.logout = logout;
+
+
+  async function loadMap() {
+  try {
+    const transform = await getTransform("map123", "hloc45", "dataset001");
+    console.log("Transform JSON:", transform);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function saveMatrix(selectedModel) {
+  const payload = {
+    latitude: selectedModel.startPosition.lat,
+    longitude: selectedModel.startPosition.lon,
+    height: mapHeight,
+    matrix: selectedModel.matrix
+  };
+
+  try {
+    const result = await postTransform("map123", "hloc45", "dataset001", payload);
+    console.log("Saved transform:", result);
+  } catch (e) {
+    console.error(e);
+  }
+}
 
       // Hide all toolbars initially
       toolbars.forEach((tb) => (tb.style.display = "none"));

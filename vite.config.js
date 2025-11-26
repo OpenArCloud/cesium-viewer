@@ -1,12 +1,16 @@
-// vite.config.js
 import { defineConfig } from 'vite';
-
+import dotenv from 'dotenv';
 
 export default defineConfig({
   server: {
     port: 8044,
-    allowedHosts: [
-      "YOUR_EXTERNAL_URL"
-    ]
-  },
+    proxy: {
+      "/api": {
+        target: "https://example.com/",
+        changeOrigin: true,
+        secure: false,
+        rewrite: path => path.replace(/^\/api/, "")
+      }
+    }
+  }
 });
