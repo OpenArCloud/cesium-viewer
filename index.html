@@ -12,7 +12,7 @@
 
     <script src="./auth.js"></script>
 
-    <script src="./wrapper.js"></script>
+    <script type="module" src="./wrapper.js"></script>
     <!-- Custom Styles -->
     <style>
       html,
@@ -196,71 +196,104 @@
         <option value="MapAligner">Map Aligner</option>
       </select>
     </div>
-    <div id="MapAligner" style="color: white;
-    position: absolute;
-    top: 80px;
-    left: 10px;
-    background: rgba(42, 42, 42, 0.7);
-    padding: 10px;
-    border-radius: 5px;
-    z-index: 20;">
+    <div
+      id="MapAligner"
+      style="
+        color: white;
+        position: absolute;
+        top: 80px;
+        left: 10px;
+        background: rgba(42, 42, 42, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 20;
+      "
+    >
+      <h3>Map Aligner</h3>
 
-  <h3>Map Aligner</h3>
-
-  <!-- Model Upload -->
-  <input type="file" id="modelFileInput" accept=".glb,.gltf,.obj" />
-  <br />
-  <input type="text" placeholder="3D Model URL" id="modelUrl" />
-  <button onclick="loadModelFromURL()">Load from URL</button>
-  <br /><br />
-  <div id="coordinatesText"></div>
-  <br />
-  <input type="checkbox" id="coordinateToggle" />
-  <label for="coordinateToggle">Enable to choose coordinates from click</label>
-  <br /><br />
-  <input type="text" placeholder="MAP ID" id="mapId"/>
-  <br />
-  <input type="text" placeholder="HLOC ID" id="hlocId"/>
-  <br />
-  <input type="text" placeholder="DATA ID" id="dataId"/>
-  <br /><br />
-  <button id="sendBtn" onclick="loadMap()">Load Map</button>
-  <br />
-  <button id="loadBtn" onclick="saveMatrix()">Save Data</button>
-  <br /><br />
-  <!-- Model Controls -->
-  <label for="modelScale"><strong>Scale:</strong></label>
-  <input type="number" id="modelScale" value="1" min="0.1" step="0.1" style="width:70px;">
-  <br /><br />
-  <label for="positionStep"><strong>Position step (° lat/lon):</strong></label>
-  <input type="number" id="positionStep" value="10" min="0.1" step="1" style="width:80px;">*e-6
-  <br /><br />
-  <label for="heightStep"><strong>Height step (m):</strong></label>
-  <input type="number" id="heightStep" value="1" min="0.01" step="0.01" style="width:70px;">
-  <br /><br />
-  <button onclick="moveModel('up')">UP ↑</button>
-  <button onclick="moveModel('down')">DOWN ↓</button>
-  <br />
-  <button onclick="moveModel('west')">WEST ←</button>
-  <button onclick="moveModel('east')">EAST →</button>
-  <br />
-  <button onclick="moveModel('north')">NORTH ⤴</button>
-  <button onclick="moveModel('south')">SOUTH ⤵</button>
-  <br /><br />
-  <label for="rotationStep"><strong>Rotation step size:</strong></label>
-  <input type="number" id="rotationStep" value="5" min="0.1" max="90" step="0.1" style="width:60px;">°
-  <br /><br />
-  <button onclick="rotateModel('left')">⟲ Yaw Left</button>
-  <button onclick="rotateModel('right')">⟳ Yaw Right</button>
-  <br />
-  <button onclick="adjustPitch('up')">Pitch ↑</button>
-  <button onclick="adjustPitch('down')">Pitch ↓</button>
-  <br />
-  <button onclick="adjustRoll('left')">Roll ←</button>
-  <button onclick="adjustRoll('right')">Roll →</button>
-  <br /><br />
-  <button onclick="exportModelMatrix()">Export Matrix JSON</button>
-  </div>
+      <!-- Model Upload -->
+      <input type="file" id="modelFileInput" accept=".glb,.gltf,.obj" />
+      <br />
+      <input type="text" placeholder="3D Model URL" id="modelUrl" />
+      <button onclick="loadModelFromURL()">Load from URL</button>
+      <br /><br />
+      <div id="coordinatesText"></div>
+      <br />
+      <input type="checkbox" id="coordinateToggle" />
+      <label for="coordinateToggle"
+        >Enable to choose coordinates from click</label
+      >
+      <br /><br />
+      <input type="text" placeholder="HLOC ID" id="hlocId" />
+      <br />
+      <input type="text" placeholder="DATA ID" id="dataId" />
+      <br /><br />
+      <button id="sendBtn" onclick="loadMap()">Load Map</button>
+      <br />
+      <button id="loadBtn" onclick="saveMatrix()">Save Data</button>
+      <br /><br />
+      <!-- Model Controls -->
+      <label for="modelScale"><strong>Scale:</strong></label>
+      <input
+        type="number"
+        id="modelScale"
+        value="1"
+        min="0.1"
+        step="0.1"
+        style="width: 70px"
+      />
+      <br /><br />
+      <label for="positionStep"
+        ><strong>Position step (° lat/lon):</strong></label
+      >
+      <input
+        type="number"
+        id="positionStep"
+        value="10"
+        min="0.1"
+        step="1"
+        style="width: 80px"
+      />*e-6 <br /><br />
+      <label for="heightStep"><strong>Height step (m):</strong></label>
+      <input
+        type="number"
+        id="heightStep"
+        value="1"
+        min="0.01"
+        step="0.01"
+        style="width: 70px"
+      />
+      <br /><br />
+      <button onclick="moveModel('up')">UP ↑</button>
+      <button onclick="moveModel('down')">DOWN ↓</button>
+      <br />
+      <button onclick="moveModel('west')">WEST ←</button>
+      <button onclick="moveModel('east')">EAST →</button>
+      <br />
+      <button onclick="moveModel('north')">NORTH ⤴</button>
+      <button onclick="moveModel('south')">SOUTH ⤵</button>
+      <br /><br />
+      <label for="rotationStep"><strong>Rotation step size:</strong></label>
+      <input
+        type="number"
+        id="rotationStep"
+        value="5"
+        min="0.1"
+        max="90"
+        step="0.1"
+        style="width: 60px"
+      />° <br /><br />
+      <button onclick="rotateModel('left')">⟲ Yaw Left</button>
+      <button onclick="rotateModel('right')">⟳ Yaw Right</button>
+      <br />
+      <button onclick="adjustPitch('up')">Pitch ↑</button>
+      <button onclick="adjustPitch('down')">Pitch ↓</button>
+      <br />
+      <button onclick="adjustRoll('left')">Roll ←</button>
+      <button onclick="adjustRoll('right')">Roll →</button>
+      <br /><br />
+      <button onclick="exportModelMatrix()">Export Matrix JSON</button>
+    </div>
     <div
       id="baseToggle"
       style="
@@ -384,7 +417,12 @@
       const tileID = 2275207;
       //------------------
 
-      import { getTransform, postTransform, convertPlyToGlb } from "./wrapper.js";
+      import {
+        getTransform,
+        postTransform,
+        convertPlyToGlb,
+        getPointCloud
+      } from "./wrapper.js";
       //import { login, logout, handleRedirect, getUserInfo } from "./auth.js";
       import { v4 as uuidv4 } from "uuid";
       import {
@@ -447,8 +485,9 @@
         if (!connectionDetails) {
           console.log("Error: no config.json was found");
           return;
-        }});
-      
+        }
+      });
+
       let chooseCoordinatesEnable = false;
       const coordinateToggle = document.getElementById("coordinateToggle");
       coordinateToggle.addEventListener("change", function () {
@@ -458,9 +497,12 @@
         if (baseConnected) {
           document.getElementById("rmqurl").value = connectionDetails.rmqurl;
           document.getElementById("rmquser").value = connectionDetails.rmquser;
-          document.getElementById("rmqpassword").value = connectionDetails.rmqpassword;
-          document.getElementById("rmqtopic_geopose_update").value = connectionDetails.rmqtopic_geopose_update;
-          document.getElementById("rmqtopic_waypoint").value = connectionDetails.rmqtopic_waypoint;
+          document.getElementById("rmqpassword").value =
+            connectionDetails.rmqpassword;
+          document.getElementById("rmqtopic_geopose_update").value =
+            connectionDetails.rmqtopic_geopose_update;
+          document.getElementById("rmqtopic_waypoint").value =
+            connectionDetails.rmqtopic_waypoint;
           document.getElementById("poiurl").value = connectionDetails.poiurl;
           document.getElementById("vpsurl").value = connectionDetails.vpsurl;
         }
@@ -510,9 +552,11 @@
             targetWidth,
             targetHeight
           );
-          console.log("EXIF Intrinsics: ", intrinsics)
+          console.log("EXIF Intrinsics: ", intrinsics);
           if (intrinsics === null) {
-            alert(`Could not read camera intrinsics from the image! Please select an image with EXIF information`);
+            alert(
+              `Could not read camera intrinsics from the image! Please select an image with EXIF information`
+            );
             return;
           }
 
@@ -526,9 +570,11 @@
           ];
 
           const geolocationInfo = await getGeolocationInfo(imageFile);
-          console.log("EXIF Geolocation: ", geolocationInfo)
+          console.log("EXIF Geolocation: ", geolocationInfo);
           if (geolocationInfo === null) {
-            alert(`Could not read geolocation from the image! Please select an image with EXIF information`);
+            alert(
+              `Could not read geolocation from the image! Please select an image with EXIF information`
+            );
             return;
           }
 
@@ -616,7 +662,10 @@
               statusDiv.textContent = "Wrong VPS address or VPS error";
             });
         } catch (err) {
-          console.log("Could not send localization request due to error: ", err);
+          console.log(
+            "Could not send localization request due to error: ",
+            err
+          );
         }
       }
 
@@ -705,7 +754,9 @@
         // TODO: https://github.com/MikeKovarik/exifr seems significantly easier to use
         try {
           let geolocationData = null;
-          await ExifReader.load(file || url, { async: true }).then(function (tags) {
+          await ExifReader.load(file || url, { async: true }).then(function (
+            tags
+          ) {
             // See all tags here: https://exiftool.org/TagNames/GPS.html
             //console.log(tags);
 
@@ -736,7 +787,8 @@
             // GPSAltitudeRef value is an integer between 0 and 3
             // 0 = Above Sea Level, 1 = Below Sea Level,
             // 2 = Positive Sea Level (sea-level ref), 3 = Negative Sea Level (sea-level ref)
-            let gpsAltitude = tags["GPSAltitude"].value[0] / tags["GPSAltitude"].value[1];
+            let gpsAltitude =
+              tags["GPSAltitude"].value[0] / tags["GPSAltitude"].value[1];
             // GPSAltutude value is a rational in form [num, denom]
             if (gpsAltitudeRef == 1 || gpsAltitudeRef == 3) {
               gpsAltitude = gpsAltitude * -1;
@@ -744,22 +796,30 @@
             // WARNING: GeoPose uses height above WGS84 ellipsoid, not sea level -- we are introducing an error here
             // we should look up in some GIS database the difference between ellipsoidheight and sea level height at the given location
 
-            const gpsImgDirectionRef = tags["GPSImgDirectionRef"].value[0] // 'M' = Magnetic North, 'T' = True North
-            let gpsImgDirection = tags["GPSImgDirection"].value[0] / tags["GPSImgDirection"].value[1]
+            const gpsImgDirectionRef = tags["GPSImgDirectionRef"].value[0]; // 'M' = Magnetic North, 'T' = True North
+            let gpsImgDirection =
+              tags["GPSImgDirection"].value[0] /
+              tags["GPSImgDirection"].value[1];
             //GPSImgDirection value is a rational in form [num, denom]
             //gpsImgDirection = (90 + gpsImgDirection) % 360
             // WARNING: the GeoPose standard measures camera orientation w.r.t East and not North! So we need to add 90 degrees offset.
 
-            const gpsDateStampString = String(tags["GPSDateStamp"].value) // string in form "YYYY:mm:dd"
-            const year = gpsDateStampString.split(':')[0]
-            const month = gpsDateStampString.split(':')[1]
-            const day = gpsDateStampString.split(':')[2]
-            const gpsTimestampArray = tags["GPSTimeStamp"].value // UTC time in form of rational 3-array [H, M, S]
-            const hour = String(gpsTimestampArray[0][0] / gpsTimestampArray[0][1]).padStart(2, "0");
-            const minute = String(gpsTimestampArray[1][0] / gpsTimestampArray[1][1]).padStart(2, "0");
-            const second = String(gpsTimestampArray[2][0] / gpsTimestampArray[2][1]).padStart(2, "0");
+            const gpsDateStampString = String(tags["GPSDateStamp"].value); // string in form "YYYY:mm:dd"
+            const year = gpsDateStampString.split(":")[0];
+            const month = gpsDateStampString.split(":")[1];
+            const day = gpsDateStampString.split(":")[2];
+            const gpsTimestampArray = tags["GPSTimeStamp"].value; // UTC time in form of rational 3-array [H, M, S]
+            const hour = String(
+              gpsTimestampArray[0][0] / gpsTimestampArray[0][1]
+            ).padStart(2, "0");
+            const minute = String(
+              gpsTimestampArray[1][0] / gpsTimestampArray[1][1]
+            ).padStart(2, "0");
+            const second = String(
+              gpsTimestampArray[2][0] / gpsTimestampArray[2][1]
+            ).padStart(2, "0");
             const dateString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
-            console.log(dateString)
+            console.log(dateString);
             const date = new Date(dateString);
             const posixTimeMillis = date.getTime();
             console.log(posixTimeMillis);
@@ -769,7 +829,7 @@
               lon: longitude,
               h: gpsAltitude, // TODO: send ellipsoid height instead of sea level height?
               heading: gpsImgDirection, // TODO: add 90deg offset or not?
-              timestamp: posixTimeMillis
+              timestamp: posixTimeMillis,
             };
           });
           return geolocationData;
@@ -792,7 +852,9 @@
         }
         try {
           let focalLength;
-          await ExifReader.load(file || url, { async: true }).then(function (tags) {
+          await ExifReader.load(file || url, { async: true }).then(function (
+            tags
+          ) {
             // See https://exiftool.org/TagNames/EXIF.html
             focalLength = tags["FocalLengthIn35mmFilm"].value;
           });
@@ -810,7 +872,9 @@
           };
           return intrinsics;
         } catch (error) {
-          console.log(`Could not get camera intrinsics from EXIF of photo" ${error}`);
+          console.log(
+            `Could not get camera intrinsics from EXIF of photo" ${error}`
+          );
           return null;
         }
       }
@@ -836,15 +900,15 @@
         const lat = Cesium.Math.toDegrees(cartographic.latitude);
         const lon = Cesium.Math.toDegrees(cartographic.longitude);
         const height = cartographic.height;
-        if(chooseCoordinatesEnable){
-        mapHeight = height;
-        mapLatitude = lat;
-        mapLongitude = lon;
+        if (chooseCoordinatesEnable) {
+          mapHeight = height;
+          mapLatitude = lat;
+          mapLongitude = lon;
 
-        const coordinatesText = document.getElementById("coordinatesText");
-        coordinatesText.textContent = `Chosen coordinates: Lat: ${lat.toFixed(
-          5
-        )}, Lon: ${lon.toFixed(5)}, Height: ${height.toFixed(2)}`;
+          const coordinatesText = document.getElementById("coordinatesText");
+          coordinatesText.textContent = `Chosen coordinates: Lat: ${lat.toFixed(
+            5
+          )}, Lon: ${lon.toFixed(5)}, Height: ${height.toFixed(2)}`;
         }
         const statusDiv = document.getElementById("poiSearchText");
         statusDiv.textContent = `Chosen coordinates: Lat: ${lat.toFixed(
@@ -1230,462 +1294,535 @@
         document.getElementById("MapAligner"),
       ];
 
-// ----------------------------------------
-// 3D MODEL HANDLING IN MAPALIGNER (FIXED)
-// ----------------------------------------
+      // ----------------------------------------
+      // 3D MODEL HANDLING IN MAPALIGNER (FIXED)
+      // ----------------------------------------
 
-let models = {};
-let selectedModel = null;
-let modelCounter = 0;
+      let models = {};
+      let selectedModel = null;
+      let modelCounter = 0;
 
-// ==============================
-// FILE UPLOAD HANDLER
-// ==============================
-document.getElementById("modelFileInput").addEventListener("change", (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+      // ==============================
+      // FILE UPLOAD HANDLER
+      // ==============================
+      document
+        .getElementById("modelFileInput")
+        .addEventListener("change", (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
 
-  const url = URL.createObjectURL(file);
-  loadModel(url, true);
-});
+          const url = URL.createObjectURL(file);
+          loadModel(url, true);
+        });
 
-// ==============================
-// SCALE
-// ==============================
-document.getElementById("modelScale").addEventListener("change", (event) => {
-  selectedModel.scale = document.getElementById("modelScale").value;
-  updateModelTransform(selectedModel);
-});
+      // ==============================
+      // SCALE
+      // ==============================
+      document
+        .getElementById("modelScale")
+        .addEventListener("change", (event) => {
+          selectedModel.scale = document.getElementById("modelScale").value;
+          updateModelTransform(selectedModel);
+        });
 
-// ==============================
-// LOAD MODEL FROM USER-ENTERED URL
-// ==============================
-window.loadModelFromURL = function () {
-  const url = document.getElementById("modelUrl").value.trim();
-  if (url) {
-    loadModel(url);
-  } else {
-    alert("Please enter a valid model URL!");
-  }
-};
+      // ==============================
+      // LOAD MODEL FROM USER-ENTERED URL
+      // ==============================
+      window.loadModelFromURL = function () {
+        const url = document.getElementById("modelUrl").value.trim();
+        if (url) {
+          loadModel(url);
+        } else {
+          alert("Please enter a valid model URL!");
+        }
+      };
 
-// ==============================
-// MAIN MODEL LOADER
-// ==============================
-function loadModel(modelUrl, revokeAfter = false) {
-  if (typeof mapLongitude === "undefined" || typeof mapLatitude === "undefined" || typeof mapHeight === "undefined") {
-    alert("Map coordinates are not defined!");
-    return;
-  }
+      // ==============================
+      // MAIN MODEL LOADER
+      // ==============================
+      function loadModel(modelUrl, revokeAfter = false) {
+        if (
+          typeof mapLongitude === "undefined" ||
+          typeof mapLatitude === "undefined" ||
+          typeof mapHeight === "undefined"
+        ) {
+          alert("Map coordinates are not defined!");
+          return;
+        }
 
-  const position = Cesium.Cartesian3.fromDegrees(mapLongitude, mapLatitude, mapHeight);
-  const hpr = new Cesium.HeadingPitchRoll(0, 0, 0);
-  const modelName = "userModel_" + modelCounter++;
+        const position = Cesium.Cartesian3.fromDegrees(
+          mapLongitude,
+          mapLatitude,
+          mapHeight
+        );
+        const hpr = new Cesium.HeadingPitchRoll(0, 0, 0);
+        const modelName = "userModel_" + modelCounter++;
 
-  const entity = viewer.entities.add({
-    name: modelName,
-    position: position,
-    orientation: Cesium.Transforms.headingPitchRollQuaternion(position, hpr),
-    model: {
-      uri: modelUrl,
-      scale: 1.0,
-      minimumPixelSize: 0,
-    },
-  });
+        const entity = viewer.entities.add({
+          name: modelName,
+          position: position,
+          orientation: Cesium.Transforms.headingPitchRollQuaternion(
+            position,
+            hpr
+          ),
+          model: {
+            uri: modelUrl,
+            scale: 1.0,
+            minimumPixelSize: 0,
+          },
+        });
 
-  // New extended model object
-  const modelObj = {
-    name: modelName,
-    startPosition: {lat: mapLatitude, lon: mapLongitude},
-    entity,
-    position,
-    heading: 0,
-    pitch: 0,
-    roll: 0,
-    translation: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 1.0,
-    matrix: [
-      [1, 0, 0, 0],
-      [0, 1, 0, 0],
-      [0, 0, 1, 0],
-      [0, 0, 0, 1],
-    ],
-  };
+        // New extended model object
+        const modelObj = {
+          name: modelName,
+          startPosition: { lat: mapLatitude, lon: mapLongitude },
+          entity,
+          position,
+          heading: 0,
+          pitch: 0,
+          roll: 0,
+          translation: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: 1.0,
+          matrix: [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+          ],
+        };
 
-  models[modelName] = modelObj;
-  selectedModel = modelObj;
+        models[modelName] = modelObj;
+        selectedModel = modelObj;
 
-  if (revokeAfter) {
-    setTimeout(() => URL.revokeObjectURL(modelUrl), 5000);
-  }
+        if (revokeAfter) {
+          setTimeout(() => URL.revokeObjectURL(modelUrl), 5000);
+        }
 
-  console.log(`Model loaded: ${modelName}`);
-}
+        console.log(`Model loaded: ${modelName}`);
+      }
 
-// ==============================
-// MODEL SELECTION (CLICK HANDLER)
-// ==============================
-const modelClickHandler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+      // ==============================
+      // MODEL SELECTION (CLICK HANDLER)
+      // ==============================
+      const modelClickHandler = new Cesium.ScreenSpaceEventHandler(
+        viewer.canvas
+      );
 
-modelClickHandler.setInputAction((click) => {
-  const picked = viewer.scene.pick(click.position);
+      modelClickHandler.setInputAction((click) => {
+        const picked = viewer.scene.pick(click.position);
 
-  if (Cesium.defined(picked) && picked.id && models[picked.id.name]) {
-    selectedModel = models[picked.id.name];
-    console.log("Selected model:", selectedModel.name);
-  } else {
-    selectedModel = null;
-    console.log("No model selected");
-  }
-}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+        if (Cesium.defined(picked) && picked.id && models[picked.id.name]) {
+          selectedModel = models[picked.id.name];
+          console.log("Selected model:", selectedModel.name);
+        } else {
+          selectedModel = null;
+          console.log("No model selected");
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-// ==============================
-// MOVEMENT CONTROLS
-// ==============================
-window.moveModel = function (direction) {
-  if (!selectedModel) return alert("No model selected!");
+      // ==============================
+      // MOVEMENT CONTROLS
+      // ==============================
+      window.moveModel = function (direction) {
+        if (!selectedModel) return alert("No model selected!");
 
-  const carto = Cesium.Cartographic.fromCartesian(selectedModel.position);
-  const latLonStep = parseFloat(document.getElementById("positionStep").value/1000000) || 10;
-  const heightStep = parseFloat(document.getElementById("heightStep").value) || 1;
+        const carto = Cesium.Cartographic.fromCartesian(selectedModel.position);
+        const latLonStep =
+          parseFloat(document.getElementById("positionStep").value / 1000000) ||
+          10;
+        const heightStep =
+          parseFloat(document.getElementById("heightStep").value) || 1;
 
-  switch (direction) {
-    case "north": carto.latitude += Cesium.Math.toRadians(latLonStep); break;
-    case "south": carto.latitude -= Cesium.Math.toRadians(latLonStep); break;
-    case "east":  carto.longitude += Cesium.Math.toRadians(latLonStep); break;
-    case "west":  carto.longitude -= Cesium.Math.toRadians(latLonStep); break;
-    case "up":    carto.height += heightStep; break;
-    case "down":  carto.height -= heightStep; break;
-  }
+        switch (direction) {
+          case "north":
+            carto.latitude += Cesium.Math.toRadians(latLonStep);
+            break;
+          case "south":
+            carto.latitude -= Cesium.Math.toRadians(latLonStep);
+            break;
+          case "east":
+            carto.longitude += Cesium.Math.toRadians(latLonStep);
+            break;
+          case "west":
+            carto.longitude -= Cesium.Math.toRadians(latLonStep);
+            break;
+          case "up":
+            carto.height += heightStep;
+            break;
+          case "down":
+            carto.height -= heightStep;
+            break;
+        }
 
-  selectedModel.position = Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, carto.height);
-  updateModelTransform(selectedModel);
-};
+        selectedModel.position = Cesium.Cartesian3.fromRadians(
+          carto.longitude,
+          carto.latitude,
+          carto.height
+        );
+        updateModelTransform(selectedModel);
+      };
 
-// ==============================
-// ROTATION CONTROLS
-// ==============================
-function getRotationStep() {
-  return Cesium.Math.toRadians(parseFloat(document.getElementById("rotationStep").value) || 5);
-}
+      // ==============================
+      // ROTATION CONTROLS
+      // ==============================
+      function getRotationStep() {
+        return Cesium.Math.toRadians(
+          parseFloat(document.getElementById("rotationStep").value) || 5
+        );
+      }
 
-// Rotate Heading (Yaw)
-window.rotateModel = function (direction) {
-  if (!selectedModel) return alert("No model selected!");
-  const step = getRotationStep();
-  selectedModel.heading += (direction === "left" ? -step : step);
-  updateModelTransform(selectedModel);
-};
+      // Rotate Heading (Yaw)
+      window.rotateModel = function (direction) {
+        if (!selectedModel) return alert("No model selected!");
+        const step = getRotationStep();
+        selectedModel.heading += direction === "left" ? -step : step;
+        updateModelTransform(selectedModel);
+      };
 
-// Adjust Pitch
-window.adjustPitch = function (direction) {
-  if (!selectedModel) return alert("No model selected!");
-  const step = getRotationStep();
-  selectedModel.pitch += (direction === "up" ? step : -step);
-  updateModelTransform(selectedModel);
-};
+      // Adjust Pitch
+      window.adjustPitch = function (direction) {
+        if (!selectedModel) return alert("No model selected!");
+        const step = getRotationStep();
+        selectedModel.pitch += direction === "up" ? step : -step;
+        updateModelTransform(selectedModel);
+      };
 
-// Adjust Roll
-window.adjustRoll = function (direction) {
-  if (!selectedModel) return alert("No model selected!");
-  const step = getRotationStep();
-  selectedModel.roll += (direction === "right" ? step : -step);
-  updateModelTransform(selectedModel);
-};
+      // Adjust Roll
+      window.adjustRoll = function (direction) {
+        if (!selectedModel) return alert("No model selected!");
+        const step = getRotationStep();
+        selectedModel.roll += direction === "right" ? step : -step;
+        updateModelTransform(selectedModel);
+      };
 
-// ==============================
-// TRANSFORM UPDATER
-// ==============================
-function updateModelTransform(modelObj) {
-  if (!modelObj || !modelObj.entity) return;
+      // ==============================
+      // TRANSFORM UPDATER
+      // ==============================
+      function updateModelTransform(modelObj) {
+        if (!modelObj || !modelObj.entity) return;
 
-  // Ensure numeric radians
-  const heading = Number(modelObj.heading) || 0;
-  const pitch = Number(modelObj.pitch) || 0;
-  const roll = Number(modelObj.roll) || 0;
+        // Ensure numeric radians
+        const heading = Number(modelObj.heading) || 0;
+        const pitch = Number(modelObj.pitch) || 0;
+        const roll = Number(modelObj.roll) || 0;
 
-  // Update Cesium orientation
-  const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
-  modelObj.entity.position = modelObj.position;
-  modelObj.entity.orientation = Cesium.Transforms.headingPitchRollQuaternion(modelObj.position, hpr);
-  modelObj.entity.model.scale = modelObj.scale;
+        // Update Cesium orientation
+        const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+        modelObj.entity.position = modelObj.position;
+        modelObj.entity.orientation =
+          Cesium.Transforms.headingPitchRollQuaternion(modelObj.position, hpr);
+        modelObj.entity.model.scale = modelObj.scale;
 
-  // Approximate translation in local tangent plane (for logging/export)
-  const carto = Cesium.Cartographic.fromCartesian(modelObj.position);
-  const R = 6378137.0; // WGS84 mean Earth radius
+        // Approximate translation in local tangent plane (for logging/export)
+        const carto = Cesium.Cartographic.fromCartesian(modelObj.position);
+        const R = 6378137.0; // WGS84 mean Earth radius
 
-  const refLat = Cesium.Math.toRadians(mapLatitude);
-  const refLon = Cesium.Math.toRadians(mapLongitude);
-  const curLat = carto.latitude;
-  const curLon = carto.longitude;
+        const refLat = Cesium.Math.toRadians(mapLatitude);
+        const refLon = Cesium.Math.toRadians(mapLongitude);
+        const curLat = carto.latitude;
+        const curLon = carto.longitude;
 
-  const dLat = curLat - refLat;
-  const dLon = curLon - refLon;
+        const dLat = curLat - refLat;
+        const dLon = curLon - refLon;
 
-  const x = dLon * R * window.Math.cos(refLat); // East (meters)
-  const y = dLat * R;                           // North (meters)
-  const z = carto.height - mapHeight;           // Up (meters)
+        const x = dLon * R * window.Math.cos(refLat); // East (meters)
+        const y = dLat * R; // North (meters)
+        const z = carto.height - mapHeight; // Up (meters)
 
-  modelObj.translation = { x, y, z };
+        modelObj.translation = { x, y, z };
 
-  // Store rotation in degrees (for readability)
-  modelObj.rotation = {
-    x: Cesium.Math.toDegrees(pitch),
-    y: Cesium.Math.toDegrees(roll),
-    z: Cesium.Math.toDegrees(heading),
-  };
+        // Store rotation in degrees (for readability)
+        modelObj.rotation = {
+          x: Cesium.Math.toDegrees(pitch),
+          y: Cesium.Math.toDegrees(roll),
+          z: Cesium.Math.toDegrees(heading),
+        };
 
-  // Compute rotation * scale matrix (Heading–Pitch–Roll order)
-  const cosH = window.Math.cos(heading);
-  const sinH = window.Math.sin(heading);
-  const cosP = window.Math.cos(pitch);
-  const sinP = window.Math.sin(pitch);
-  const cosR = window.Math.cos(roll);
-  const sinR = window.Math.sin(roll);
-  const s = Number(modelObj.scale) || 1.0;
+        // Compute rotation * scale matrix (Heading–Pitch–Roll order)
+        const cosH = window.Math.cos(heading);
+        const sinH = window.Math.sin(heading);
+        const cosP = window.Math.cos(pitch);
+        const sinP = window.Math.sin(pitch);
+        const cosR = window.Math.cos(roll);
+        const sinR = window.Math.sin(roll);
+        const s = Number(modelObj.scale) || 1.0;
 
-  // Cesium HPR rotation order: heading (Z), pitch (X), roll (Y)
-  const m11 = s * (cosH * cosR + sinH * sinP * sinR);
-  const m12 = s * (sinR * cosP);
-  const m13 = s * (-sinH * cosR + cosH * sinP * sinR);
-  const m21 = s * (-cosH * sinR + sinH * sinP * cosR);
-  const m22 = s * (cosR * cosP);
-  const m23 = s * (sinR * sinH + cosH * sinP * cosR);
-  const m31 = s * (sinH * cosP);
-  const m32 = s * (-sinP);
-  const m33 = s * (cosH * cosP);
+        // Cesium HPR rotation order: heading (Z), pitch (X), roll (Y)
+        const m11 = s * (cosH * cosR + sinH * sinP * sinR);
+        const m12 = s * (sinR * cosP);
+        const m13 = s * (-sinH * cosR + cosH * sinP * sinR);
+        const m21 = s * (-cosH * sinR + sinH * sinP * cosR);
+        const m22 = s * (cosR * cosP);
+        const m23 = s * (sinR * sinH + cosH * sinP * cosR);
+        const m31 = s * (sinH * cosP);
+        const m32 = s * -sinP;
+        const m33 = s * (cosH * cosP);
 
-  modelObj.matrix = [
-    [m11, m12, m13, modelObj.translation.x],
-    [m21, m22, m23, modelObj.translation.y],
-    [m31, m32, m33, modelObj.translation.z],
-    [0, 0, 0, 1],
-  ];
+        modelObj.matrix = [
+          [m11, m12, m13, modelObj.translation.x],
+          [m21, m22, m23, modelObj.translation.y],
+          [m31, m32, m33, modelObj.translation.z],
+          [0, 0, 0, 1],
+        ];
 
-  // Optional debug
-  console.log("Updated transform for", modelObj.name, modelObj.matrix);
-}
+        // Optional debug
+        console.log("Updated transform for", modelObj.name, modelObj.matrix);
+      }
 
-// ==============================
-// UTILITY FUNCTIONS
-// ==============================
-window.getHeightStep = function () {
-  return parseFloat(document.getElementById("heightStep").value) || 1;
-};
+      // ==============================
+      // UTILITY FUNCTIONS
+      // ==============================
+      window.getHeightStep = function () {
+        return parseFloat(document.getElementById("heightStep").value) || 1;
+      };
 
-window.exportModelMatrix = async function () {
-  if (!selectedModel) {
-    alert("No model selected!");
-    return;
-  }
+      window.exportModelMatrix = async function () {
+        if (!selectedModel) {
+          alert("No model selected!");
+          return;
+        }
 
-  const json = {
-    latitude: selectedModel.startPosition.lat,
-    longitude: selectedModel.startPosition.lon,
-    height: mapHeight,
-    matrix: selectedModel.matrix
-  };
+        const json = {
+          latitude: selectedModel.startPosition.lat,
+          longitude: selectedModel.startPosition.lon,
+          height: mapHeight,
+          matrix: selectedModel.matrix,
+        };
 
-  const jsonString = JSON.stringify(json, null, 2);
-  const fileName = selectedModel.name + "_matrix.json";
+        const jsonString = JSON.stringify(json, null, 2);
+        const fileName = selectedModel.name + "_matrix.json";
 
-  // Check browser support
-  if (window.showSaveFilePicker) {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName: fileName,
-        types: [
-          {
-            description: "JSON file",
-            accept: { "application/json": [".json"] }
+        // Check browser support
+        if (window.showSaveFilePicker) {
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: fileName,
+              types: [
+                {
+                  description: "JSON file",
+                  accept: { "application/json": [".json"] },
+                },
+              ],
+            });
+
+            const writable = await handle.createWritable();
+            await writable.write(jsonString);
+            await writable.close();
+
+            console.log("Saved JSON using showSaveFilePicker.");
+            return;
+          } catch (error) {
+            console.warn("showSaveFilePicker failed, falling back:", error);
           }
-        ]
+        }
+
+        // Fallback: old behavior ("Save As..." dialog)
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+
+        URL.revokeObjectURL(url);
+      };
+
+      // ==============================
+      // DELETE SELECTED MODEL
+      // ==============================
+      window.deleteSelectedModel = function () {
+        if (!selectedModel) {
+          alert("No model selected!");
+          return;
+        }
+
+        const confirmDelete = confirm(`Delete model "${selectedModel.name}"?`);
+        if (!confirmDelete) return;
+
+        // Remove from Cesium viewer
+        viewer.entities.remove(selectedModel.entity);
+
+        // Remove from models dictionary
+        delete models[selectedModel.name];
+
+        console.log(`Deleted model: ${selectedModel.name}`);
+        selectedModel = null;
+      };
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete" && selectedModel) {
+          deleteSelectedModel();
+        }
       });
 
-      const writable = await handle.createWritable();
-      await writable.write(jsonString);
-      await writable.close();
+      function extractHPRScale(matrix) {
+        const m11 = matrix[0][0],
+          m12 = matrix[0][1],
+          m13 = matrix[0][2];
+        const m21 = matrix[1][0],
+          m22 = matrix[1][1],
+          m23 = matrix[1][2];
+        const m31 = matrix[2][0],
+          m32 = matrix[2][1],
+          m33 = matrix[2][2];
 
-      console.log("Saved JSON using showSaveFilePicker.");
-      return;
-    } catch (error) {
-      console.warn("showSaveFilePicker failed, falling back:", error);
-    }
-  }
+        // ---- SCALE ----
+        const sx = Math.hypot(m11, m21, m31);
+        const sy = Math.hypot(m12, m22, m32);
+        const sz = Math.hypot(m13, m23, m33);
+        const scale = (sx + sy + sz) / 3; // uniform
 
-  // Fallback: old behavior ("Save As..." dialog)
-  const blob = new Blob([jsonString], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+        // ---- NORMALIZE ----
+        const r11 = m11 / scale,
+          r12 = m12 / scale,
+          r13 = m13 / scale;
+        const r21 = m21 / scale,
+          r22 = m22 / scale,
+          r23 = m23 / scale;
+        const r31 = m31 / scale,
+          r32 = m32 / scale,
+          r33 = m33 / scale;
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  a.click();
+        // ---- ROTATIONS (Cesium HPR order) ----
+        const pitch = Math.asin(-r32);
+        const heading = Math.atan2(r31, r33);
+        const roll = Math.atan2(r12, r22);
 
-  URL.revokeObjectURL(url);
-};
+        return { heading, pitch, roll, scale };
+      }
 
-// ==============================
-// DELETE SELECTED MODEL
-// ==============================
-window.deleteSelectedModel = function () {
-  if (!selectedModel) {
-    alert("No model selected!");
-    return;
-  }
+      function extractTranslation(matrix, refLatDeg, refLonDeg, refHeight) {
+        // Matrix translation component
+        const x = matrix[0][3]; // East
+        const y = matrix[1][3]; // North
+        const z = matrix[2][3]; // Up
 
-  const confirmDelete = confirm(`Delete model "${selectedModel.name}"?`);
-  if (!confirmDelete) return;
+        const R = 6378137.0;
+        const refLat = Cesium.Math.toRadians(refLatDeg);
+        const refLon = Cesium.Math.toRadians(refLonDeg);
 
-  // Remove from Cesium viewer
-  viewer.entities.remove(selectedModel.entity);
+        const dLat = y / R;
+        const dLon = x / (R * Math.cos(refLat));
 
-  // Remove from models dictionary
-  delete models[selectedModel.name];
+        const lat = refLat + dLat;
+        const lon = refLon + dLon;
+        const height = z + refHeight;
 
-  console.log(`Deleted model: ${selectedModel.name}`);
-  selectedModel = null;
-};
+        return {
+          latitude: Cesium.Math.toDegrees(lat),
+          longitude: Cesium.Math.toDegrees(lon),
+          height,
+        };
+      }
 
-document.addEventListener("keydown", (e) => {
-  if ((e.key === "Delete") && selectedModel) {
-    deleteSelectedModel();
-  }
-});
+      async function loadMap() {
+        console.log("loadmap");
+        console.log(import.meta.env.VITE_MAPBUILDER_URL);
+        try {
+          const hlocId = document.getElementById("hlocId").value.trim();
+          const dataId = document.getElementById("dataId").value.trim();
 
+          if (!hlocId || !dataId) {
+            throw new Error("Please enter, HLOC ID, and DATA ID.");
+            return;
+          }
 
-  function extractHPRScale(matrix) {
-  const m11 = matrix[0][0], m12 = matrix[0][1], m13 = matrix[0][2];
-  const m21 = matrix[1][0], m22 = matrix[1][1], m23 = matrix[1][2];
-  const m31 = matrix[2][0], m32 = matrix[2][1], m33 = matrix[2][2];
+          const transformJson = await getTransform(hlocId, dataId);
+          const plyBlob = await getPointCloud(hlocId, dataId);
+          
 
-  // ---- SCALE ----
-  const sx = Math.hypot(m11, m21, m31);
-  const sy = Math.hypot(m12, m22, m32);
-  const sz = Math.hypot(m13, m23, m33);
-  const scale = (sx + sy + sz) / 3; // uniform
+        } catch (e) {
+          console.error("Error fetching transform:", e);
+          return;
+        }
+        const glbBlob = await convertPlyToGlb(plyBlob);
 
-  // ---- NORMALIZE ----
-  const r11 = m11 / scale, r12 = m12 / scale, r13 = m13 / scale;
-  const r21 = m21 / scale, r22 = m22 / scale, r23 = m23 / scale;
-  const r31 = m31 / scale, r32 = m32 / scale, r33 = m33 / scale;
+        const glbUrl = URL.createObjectURL(glbBlob);
 
-  // ---- ROTATIONS (Cesium HPR order) ----
-  const pitch   = Math.asin(-r32);
-  const heading = Math.atan2(r31, r33);
-  const roll    = Math.atan2(r12, r22);
+        let newPosition = extractTranslation(
+          transformJson.matrix,
+          transformJson.latitude,
+          transformJson.longitude,
+          transformJson.height
+        );
 
-  return { heading, pitch, roll, scale };
-}
+        const position = Cesium.Cartesian3.fromDegrees(
+          newPosition.longitude,
+          newPosition.latitude,
+          newPosition.height
+        );
+        let oriantation = extractHPRScale(transformJson.matrix);
+        const hpr = new Cesium.HeadingPitchRoll(
+          orientation.heading,
+          orientation.pitch,
+          oriantation.roll
+        );
+        const scale = oriantetion.scale;
 
-function extractTranslation(matrix, refLatDeg, refLonDeg, refHeight) {
-  // Matrix translation component
-  const x = matrix[0][3]; // East
-  const y = matrix[1][3]; // North
-  const z = matrix[2][3]; // Up
+        const modelName = "userModel_" + modelCounter++;
 
-  const R = 6378137.0;
-  const refLat = Cesium.Math.toRadians(refLatDeg);
-  const refLon = Cesium.Math.toRadians(refLonDeg);
+        const entity = viewer.entities.add({
+          name: modelName,
+          position: position,
+          orientation: Cesium.Transforms.headingPitchRollQuaternion(
+            position,
+            hpr
+          ),
+          model: {
+            uri: glbUrl,
+            scale: scale,
+            minimumPixelSize: 0,
+          },
+        });
 
-  const dLat = y / R;
-  const dLon = x / (R * Math.cos(refLat));
+        // New extended model object
+        const modelObj = {
+          name: modelName,
+          startPosition: { lat: mapLatitude, lon: mapLongitude },
+          entity,
+          position,
+          heading: orientation.heading,
+          pitch: orientation.pitch,
+          roll: oriantation.roll,
+          translation: {
+            x: transformJson.matrix[0][3],
+            y: transformJson.matrix[1][3],
+            z: transformJson.matrix[2][3],
+          },
+          rotation: {
+            x: orientation.pitch,
+            y: oriantation.roll,
+            z: orientation.heading,
+          },
+          scale: scale,
+          matrix: transformJson.matrix,
+        };
+      }
 
-  const lat = refLat + dLat;
-  const lon = refLon + dLon;
-  const height = z + refHeight;
+      async function saveMatrix(selectedModel) {
+        const payload = {
+          latitude: selectedModel.startPosition.lat,
+          longitude: selectedModel.startPosition.lon,
+          height: mapHeight,
+          matrix: selectedModel.matrix,
+        };
 
-  return {
-    latitude: Cesium.Math.toDegrees(lat),
-    longitude: Cesium.Math.toDegrees(lon),
-    height
-  };
-}
+        try {
+          const hlocId = document.getElementById("hlocId").value.trim();
+          const dataId = document.getElementById("dataId").value.trim();
 
+          if (!hlocId || !dataId) {
+            throw new Error("Please enter HLOC ID, and DATA ID.");
+          }
 
-  async function loadMap() {
-    console.log("loadmap");
-  try {
-  const mapId = document.getElementById("mapId").value.trim();
-  const hlocId = document.getElementById("hlocId").value.trim();
-  const dataId = document.getElementById("dataId").value.trim();
-
-  if (!mapId || !hlocId || !dataId) {
-  throw new Error("Please enter MAP ID, HLOC ID, and DATA ID.");
-  return;
-  }
-
-  const { transformJson, plyFile } = await getTransform(mapId, hlocId, dataId);
-
-  } catch (e) {
-    console.error("Error fetching transform:", e);
-  }
-  const glbBlob = await convertPlyToGlb(plyBlob);
-  const glbUrl = URL.createObjectURL(glbBlob);
-
-  let newPosition = extractTranslation(transformJson.matrix, transformJson.latitude, transformJson.longitude, transformJson.height);
-
-  const position = Cesium.Cartesian3.fromDegrees(newPosition.longitude, newPosition.latitude, newPosition.height);
-  let oriantation = extractHPRScale(transformJson.matrix);
-  const hpr = new Cesium.HeadingPitchRoll(orientation.heading, orientation.pitch, oriantation.roll);
-  const scale = oriantetion.scale;
-
-
-  const modelName = "userModel_" + modelCounter++;
-
-  const entity = viewer.entities.add({
-    name: modelName,
-    position: position,
-    orientation: Cesium.Transforms.headingPitchRollQuaternion(position, hpr),
-    model: {
-      uri: glbUrl,
-      scale: scale,
-      minimumPixelSize: 0,
-    },
-  });
-
-  // New extended model object
-  const modelObj = {
-    name: modelName,
-    startPosition: {lat: mapLatitude, lon: mapLongitude},
-    entity,
-    position,
-    heading: orientation.heading,
-    pitch: orientation.pitch,
-    roll: oriantation.roll,
-    translation: { x: transformJson.matrix[0][3], y: transformJson.matrix[1][3], z: transformJson.matrix[2][3] },
-    rotation: { x: orientation.pitch, y: oriantation.roll, z: orientation.heading },
-    scale: scale,
-    matrix: transformJson.matrix
-  };
-
-}
-
-async function saveMatrix(selectedModel) {
-  const payload = {
-    latitude: selectedModel.startPosition.lat,
-    longitude: selectedModel.startPosition.lon,
-    height: mapHeight,
-    matrix: selectedModel.matrix
-  };
-
-  try {
-  const mapId = document.getElementById("mapId").value.trim();
-  const hlocId = document.getElementById("hlocId").value.trim();
-  const dataId = document.getElementById("dataId").value.trim();
-
-  if (!mapId || !hlocId || !dataId) {
-    throw new Error("Please enter MAP ID, HLOC ID, and DATA ID.");
-  }
-
-  const result = await postTransform(mapId, hlocId, dataId, payload);
-  console.log("Saved transform:", result);
-
-} catch (e) {
-  console.error("Error saving transform:", e);
-}
-}
+          const result = await postTransform(hlocId, dataId, payload);
+          console.log("Saved transform:", result);
+        } catch (e) {
+          console.error("Error saving transform:", e);
+        }
+      }
       window.loadMap = loadMap;
       window.saveMatrix = saveMatrix;
 

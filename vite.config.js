@@ -12,5 +12,11 @@ export default defineConfig({
         rewrite: path => path.replace(/^\/api/, "")
       }
     }
+  },
+  build: {
+    lib: {
+      name: 'wrapper',
+      fileName: './wrapper.js',
+    },
   }
 });
