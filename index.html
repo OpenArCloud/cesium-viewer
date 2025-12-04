@@ -218,7 +218,15 @@
   <input type="checkbox" id="coordinateToggle" />
   <label for="coordinateToggle">Enable to choose coordinates from click</label>
   <br /><br />
-  <button id="sendBtn" onclick="saveMatrix()">Save Data</button>
+  <input type="text" placeholder="MAP ID" id="mapId"/>
+  <br />
+  <input type="text" placeholder="HLOC ID" id="hlocId"/>
+  <br />
+  <input type="text" placeholder="DATA ID" id="dataId"/>
+  <br /><br />
+  <button id="sendBtn" onclick="loadMap()">Load Map</button>
+  <br />
+  <button id="loadBtn" onclick="saveMatrix()">Save Data</button>
   <br /><br />
   <!-- Model Controls -->
   <label for="modelScale"><strong>Scale:</strong></label>
@@ -252,9 +260,6 @@
   <button onclick="adjustRoll('right')">Roll →</button>
   <br /><br />
   <button onclick="exportModelMatrix()">Export Matrix JSON</button>
-  <br /><br />
-  <button id="loginBtn" onclick="login()">Login</button>
-  <button id="logoutBtn" onclick="logout()" style="display:none">Logout</button>
   </div>
     <div
       id="baseToggle"
@@ -379,8 +384,8 @@
       const tileID = 2275207;
       //------------------
 
-      import { getTransform, postTransform } from "./wrapper.js";
-      import { login, logout, handleRedirect, getUserInfo } from "./auth.js";
+      import { getTransform, postTransform, convertPlyToGlb } from "./wrapper.js";
+      //import { login, logout, handleRedirect, getUserInfo } from "./auth.js";
       import { v4 as uuidv4 } from "uuid";
       import {
         CesiumWidget,
@@ -1549,31 +1554,112 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-  await handleRedirect();
 
-  const user = await getUserInfo();
+  function extractHPRScale(matrix) {
+  const m11 = matrix[0][0], m12 = matrix[0][1], m13 = matrix[0][2];
+  const m21 = matrix[1][0], m22 = matrix[1][1], m23 = matrix[1][2];
+  const m31 = matrix[2][0], m32 = matrix[2][1], m33 = matrix[2][2];
 
-  if (user) {
-    console.log("User logged in:", user);
-    document.getElementById("loginBtn").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "block";
-  } else {
-    console.log("User not logged in");
-    document.getElementById("loginBtn").style.display = "block";
-    document.getElementById("logoutBtn").style.display = "none";
-  }
+  // ---- SCALE ----
+  const sx = Math.hypot(m11, m21, m31);
+  const sy = Math.hypot(m12, m22, m32);
+  const sz = Math.hypot(m13, m23, m33);
+  const scale = (sx + sy + sz) / 3; // uniform
 
-  window.login = login;
-  window.logout = logout;
+  // ---- NORMALIZE ----
+  const r11 = m11 / scale, r12 = m12 / scale, r13 = m13 / scale;
+  const r21 = m21 / scale, r22 = m22 / scale, r23 = m23 / scale;
+  const r31 = m31 / scale, r32 = m32 / scale, r33 = m33 / scale;
+
+  // ---- ROTATIONS (Cesium HPR order) ----
+  const pitch   = Math.asin(-r32);
+  const heading = Math.atan2(r31, r33);
+  const roll    = Math.atan2(r12, r22);
+
+  return { heading, pitch, roll, scale };
+}
+
+function extractTranslation(matrix, refLatDeg, refLonDeg, refHeight) {
+  // Matrix translation component
+  const x = matrix[0][3]; // East
+  const y = matrix[1][3]; // North
+  const z = matrix[2][3]; // Up
+
+  const R = 6378137.0;
+  const refLat = Cesium.Math.toRadians(refLatDeg);
+  const refLon = Cesium.Math.toRadians(refLonDeg);
+
+  const dLat = y / R;
+  const dLon = x / (R * Math.cos(refLat));
+
+  const lat = refLat + dLat;
+  const lon = refLon + dLon;
+  const height = z + refHeight;
+
+  return {
+    latitude: Cesium.Math.toDegrees(lat),
+    longitude: Cesium.Math.toDegrees(lon),
+    height
+  };
+}
 
 
   async function loadMap() {
+    console.log("loadmap");
   try {
-    const transform = await getTransform("map123", "hloc45", "dataset001");
-    console.log("Transform JSON:", transform);
-  } catch (e) {
-    console.error(e);
+  const mapId = document.getElementById("mapId").value.trim();
+  const hlocId = document.getElementById("hlocId").value.trim();
+  const dataId = document.getElementById("dataId").value.trim();
+
+  if (!mapId || !hlocId || !dataId) {
+  throw new Error("Please enter MAP ID, HLOC ID, and DATA ID.");
+  return;
   }
+
+  const { transformJson, plyFile } = await getTransform(mapId, hlocId, dataId);
+
+  } catch (e) {
+    console.error("Error fetching transform:", e);
+  }
+  const glbBlob = await convertPlyToGlb(plyBlob);
+  const glbUrl = URL.createObjectURL(glbBlob);
+
+  let newPosition = extractTranslation(transformJson.matrix, transformJson.latitude, transformJson.longitude, transformJson.height);
+
+  const position = Cesium.Cartesian3.fromDegrees(newPosition.longitude, newPosition.latitude, newPosition.height);
+  let oriantation = extractHPRScale(transformJson.matrix);
+  const hpr = new Cesium.HeadingPitchRoll(orientation.heading, orientation.pitch, oriantation.roll);
+  const scale = oriantetion.scale;
+
+
+  const modelName = "userModel_" + modelCounter++;
+
+  const entity = viewer.entities.add({
+    name: modelName,
+    position: position,
+    orientation: Cesium.Transforms.headingPitchRollQuaternion(position, hpr),
+    model: {
+      uri: glbUrl,
+      scale: scale,
+      minimumPixelSize: 0,
+    },
+  });
+
+  // New extended model object
+  const modelObj = {
+    name: modelName,
+    startPosition: {lat: mapLatitude, lon: mapLongitude},
+    entity,
+    position,
+    heading: orientation.heading,
+    pitch: orientation.pitch,
+    roll: oriantation.roll,
+    translation: { x: transformJson.matrix[0][3], y: transformJson.matrix[1][3], z: transformJson.matrix[2][3] },
+    rotation: { x: orientation.pitch, y: oriantation.roll, z: orientation.heading },
+    scale: scale,
+    matrix: transformJson.matrix
+  };
+
 }
 
 async function saveMatrix(selectedModel) {
@@ -1585,12 +1671,23 @@ async function saveMatrix(selectedModel) {
   };
 
   try {
-    const result = await postTransform("map123", "hloc45", "dataset001", payload);
-    console.log("Saved transform:", result);
-  } catch (e) {
-    console.error(e);
+  const mapId = document.getElementById("mapId").value.trim();
+  const hlocId = document.getElementById("hlocId").value.trim();
+  const dataId = document.getElementById("dataId").value.trim();
+
+  if (!mapId || !hlocId || !dataId) {
+    throw new Error("Please enter MAP ID, HLOC ID, and DATA ID.");
   }
+
+  const result = await postTransform(mapId, hlocId, dataId, payload);
+  console.log("Saved transform:", result);
+
+} catch (e) {
+  console.error("Error saving transform:", e);
 }
+}
+      window.loadMap = loadMap;
+      window.saveMatrix = saveMatrix;
 
       // Hide all toolbars initially
       toolbars.forEach((tb) => (tb.style.display = "none"));
