@@ -1,5 +1,5 @@
 # Use official Node image
-FROM node:20
+FROM node:latest
 
 # Create app directory
 WORKDIR /app
@@ -11,8 +11,19 @@ RUN npm install
 # Copy rest of the files
 COPY . .
 
-# Expose the Vite dev server port
-EXPOSE 8044
+# Vite reads env vars at request time in dev mode, so it can be a runtime env var
+ARG VITE_CESIUM_TOKEN
+ENV VITE_CESIUM_TOKEN=$VITE_CESIUM_TOKEN
 
-# Start Vite dev server with host and port
-CMD ["sh", "-c", "npm run dev -- --host --port 8044"]
+# Port the dev server listens on; overridable via the PORT build argument
+ARG PORT=8044
+ENV PORT=${PORT}
+
+# The deployed dev server must not force browser reloads via HMR
+ENV DISABLE_HMR=true
+
+# Expose the dev server port
+EXPOSE ${PORT}
+
+# Serve via the Vite dev server
+CMD ["sh", "-c", "npm run dev -- --host --port ${PORT}"]

@@ -1,0 +1,14 @@
+services:
+  cesium-viewer:
+    image: oscp/cesium-viewer:latest
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: dockerfile
+      args:
+        - VITE_CESIUM_TOKEN=${VITE_CESIUM_TOKEN}
+        - PORT=${PORT:-8044}
+    environment:
+      - PORT=${PORT:-8044}
+    ports:
+      - "${PORT:-8044}:${PORT:-8044}"

@@ -7,8 +7,8 @@
     <!-- CesiumJS CSS -->
     <link href="./Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
 
-    <!-- CesiumJS Script -->
-    <script src="./Build/Cesium/Cesium.js"></script>
+    <!-- Cesium's static assets (Workers/Assets/Widgets) are served from public/Build/Cesium -->
+    <script>window.CESIUM_BASE_URL = "./Build/Cesium/";</script>
 
     <!-- Custom Styles -->
     <style>
@@ -118,6 +118,27 @@
 
       #toolbar2 button:hover {
         background: #666;
+      }
+
+      .request-button[aria-busy="true"]::before {
+        content: "";
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-right: 7px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: white;
+        border-radius: 50%;
+        vertical-align: -2px;
+        animation: request-spin 0.7s linear infinite;
+      }
+
+      .request-button:disabled {
+        cursor: wait;
+      }
+
+      @keyframes request-spin {
+        to { transform: rotate(360deg); }
       }
 
       .switch {
@@ -238,8 +259,6 @@
         color: white;
       "
     >
-      <button onclick="Corvin()">Corvin</button>
-      <button onclick="Aalto()">Aalto</button>
     </div>
     <div id="toolbar">
       <input
@@ -286,13 +305,13 @@
       >
         Ground Level (m)
       </span>
-      <button onclick="Localize()">Localize</button>
+      <button id="localizeButton" class="request-button" onclick="Localize()">Localize</button>
       <div id="statusText"></div>
     </div>
     <div id="toolbar2">
       <input type="text" placeholder="POI URL" id="poiurl" />
       <input type="text" placeholder="Query" id="query" />
-      <button onclick="searchForPOIS()">Search</button>
+      <button id="poiSearchButton" class="request-button" onclick="searchForPOIS()">Search</button>
       <div id="poiSearchText"></div>
     </div>
 
@@ -310,12 +329,12 @@
       let poiHeight = 0;
 
       //TOKENS------------
-      const CesiumToken =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0ZGIyMGE3NC03NmUxLTRlNjQtYTE3Ny1mNzQwOGI0YTM1NzgiLCJpZCI6Mjk0MDAxLCJpYXQiOjE3NDQ2Mzk3ODR9.K68s7FUXRHCwRn8L4UZQFQHzDfO3RmikQmRcDbgY6Jo";
+      const cesiumToken = import.meta.env.VITE_CESIUM_TOKEN;
       const tileID = 2275207;
       //------------------
 
       import { v4 as uuidv4 } from "uuid";
+      import * as Cesium from "./Build/Cesium/index.js";
       import {
         CesiumWidget,
         Terrain,
@@ -371,7 +390,7 @@
         baseConnected = this.checked;
         console.log("Base toggle state:", baseConnected);
         if (!connectionDetails) {
-          console.log("Error: no config.json was found");
+          console.log("Error: no connect.json was found");
           return;
         }
 
@@ -487,7 +506,10 @@
           // TODO: the camera timestamp should be read from the EXIF
           // read the DateTimeOriginal and OffsetTime tags, and then converted to posixTimeMillis
 
-          sendRequest(
+          const localizeButton = document.getElementById("localizeButton");
+          localizeButton.disabled = true;
+          localizeButton.setAttribute("aria-busy", "true");
+          await sendRequest(
             document.getElementById("vpsurl").value,
             JSON.stringify(geoPoseRequest)
           )
@@ -535,6 +557,10 @@
               console.log("Wrong VPS address or VPS error:", err);
               const statusDiv = document.getElementById("statusText");
               statusDiv.textContent = "Wrong VPS address or VPS error";
+            })
+            .finally(() => {
+              localizeButton.disabled = false;
+              localizeButton.setAttribute("aria-busy", "false");
             });
         } catch (err) {
           console.log("Could not send localization request due to error: ", err);
@@ -588,8 +614,14 @@
         reader.readAsDataURL(imageFile);
       });
 
-      // Replace this with your actual Cesium Ion access token
-      Cesium.Ion.defaultAccessToken = CesiumToken;
+      // Without a token every Cesium ion request fails with HTTP 401.
+      if (!cesiumToken) {
+        alert(
+          "VITE_CESIUM_TOKEN is not set, so Cesium ion requests will fail with HTTP 401. " +
+            "Set it in .env for local runs, or pass it to the container with -e VITE_CESIUM_TOKEN=..."
+        );
+      }
+      Cesium.Ion.defaultAccessToken = cesiumToken;
 
       const viewer = new Cesium.Viewer("cesiumContainer", {
         globe: false,
@@ -599,6 +631,19 @@
         //terrainProvider: Cesium.Terrain.fromWorldTerrain(),
       });
       viewer.camera.frustum.fov = Cesium.Math.toRadians(110);
+
+      function showDefaultGlobeView() {
+        viewer.scene.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(0, 20, 20000000),
+          orientation: new Cesium.HeadingPitchRoll(
+            0,
+            -Cesium.Math.PI_OVER_TWO,
+            0
+          ),
+        });
+      }
+
+      showDefaultGlobeView();
 
       document
         .getElementById("toggleSwitch")
@@ -743,7 +788,10 @@
           viewer.scene.primitives.add(tileset);
           document.getElementById("loadingOverlay").style.display = "none";
         } catch (error) {
-          alert(`Error loading 3D Tiles tileset: ${error}`);
+          const hint = String(error).includes("401")
+            ? " Check that VITE_CESIUM_TOKEN is set and valid, and that the tileID asset is in your Cesium ion account."
+            : "";
+          alert(`Error loading 3D Tiles tileset: ${error}${hint}`);
         }
       }
 
@@ -814,8 +862,12 @@
         }
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-      await getTileset();
-      viewer.scene.skyAtmosphere.show = true;
+      async function initializeViewer() {
+        await getTileset();
+        viewer.scene.skyAtmosphere.show = true;
+      }
+
+      initializeViewer();
 
       async function callAPI(poiUrl, lat, lng, keyword) {
         let url =
@@ -858,10 +910,13 @@
       }
 
       async function searchForPOIS() {
-        removeEntityWithName("mapPin");
+        const searchButton = document.getElementById("poiSearchButton");
+        searchButton.disabled = true;
+        searchButton.setAttribute("aria-busy", "true");
         let url = document.getElementById("poiurl").value;
         let query = document.getElementById("query").value;
         try {
+          removeEntityWithName("mapPin");
           let places = await callAPI(url, poiLat, poiLon, query);
 
           if (places) {
@@ -881,49 +936,85 @@
           }
         } catch {
           console.log("Error calling API");
+        } finally {
+          searchButton.disabled = false;
+          searchButton.setAttribute("aria-busy", "false");
         }
       }
 
       // View Locations
-      async function Corvin(duration = 2) {
-        removeEntityWithName("mapPin");
-        //const place = await callAPI(47.485843084151384, 19.076113817393416, "restaurant");
+      let locations = [];
 
-        viewer.scene.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(
-            19.07942624,
-            47.484977,
-            170
-          ),
-          orientation: new Cesium.HeadingPitchRoll(0, -0.49459905591668996, 0),
-          duration: duration,
-        });
+      function isValidLocation(location) {
+        return location &&
+          typeof location.name === "string" &&
+          location.name.trim().length > 0 &&
+          Number.isFinite(location.lon) &&
+          location.lon >= -180 &&
+          location.lon <= 180 &&
+          Number.isFinite(location.lat) &&
+          location.lat >= -90 &&
+          location.lat <= 90 &&
+          Number.isFinite(location.height) &&
+          Number.isFinite(location.heading) &&
+          Number.isFinite(location.pitch) &&
+          Number.isFinite(location.roll);
       }
 
-      async function Moricz(duration = 2) {
+      async function flyToLocation(location, duration = 2) {
         removeEntityWithName("mapPin");
         viewer.scene.camera.flyTo({
           destination: Cesium.Cartesian3.fromDegrees(
-            19.044429799048846,
-            47.47749819582731,
-            300
+            location.lon,
+            location.lat,
+            location.height
           ),
           orientation: new Cesium.HeadingPitchRoll(
-            1.5,
-            -0.49459905591668996,
-            0
+            location.heading,
+            location.pitch,
+            location.roll
           ),
           duration: duration,
         });
       }
 
-      async function Aalto(duration = 2) {
-        removeEntityWithName("mapPin");
-        viewer.scene.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(24.828, 60.18499, 100),
-          orientation: new Cesium.HeadingPitchRoll(0, 0, 0),
-          duration: duration,
-        });
+      function renderLocationButtons() {
+        const base = document.getElementById("base");
+        base.innerHTML = "";
+        for (const location of locations) {
+          if (!location.enabled) continue;
+          const button = document.createElement("button");
+          button.textContent = location.name;
+          button.addEventListener("click", () => flyToLocation(location));
+          base.appendChild(button);
+        }
+      }
+
+      async function loadLocations() {
+        try {
+          const response = await fetch("locations.json");
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          }
+
+          const loadedLocations = await response.json();
+          if (!Array.isArray(loadedLocations)) {
+            throw new Error("locations.json must contain an array");
+          }
+
+          locations = loadedLocations.filter((location) => {
+            const valid = isValidLocation(location);
+            if (!valid) {
+              console.warn("Ignoring invalid location config:", location);
+            }
+            return valid;
+          });
+        } catch (error) {
+          console.warn(`Could not load locations.json: ${error}`);
+          locations = [];
+        }
+
+        renderLocationButtons();
       }
       let agents = [];
       let spherePositions = {};
@@ -1123,14 +1214,11 @@
         CreateEntityWithName(entityName, lon, lat, height, rgb, name);
       }
       setInterval(checkAgents, 1000);
-      Corvin(0);
-      window.Corvin = Corvin;
-      window.Moricz = Moricz;
+      loadLocations();
       window.connectRMQ = connectRMQ;
       window.searchForPOIS = searchForPOIS;
       window.Localize = Localize;
       window.Go = Go;
-      window.Aalto = Aalto;
 
       const toolbarSelect = document.getElementById("toolbarSelect");
       const toolbars = [
