@@ -15,11 +15,12 @@ COPY . .
 ARG VITE_CESIUM_TOKEN
 ENV VITE_CESIUM_TOKEN=$VITE_CESIUM_TOKEN
 
-# Port the dev server listens on, overridable via the PORT env var
-ENV PORT=8044
+# Port the dev server listens on; overridable via the PORT build argument
+ARG PORT=8044
+ENV PORT=${PORT}
 
 # Expose the dev server port
-EXPOSE $PORT
+EXPOSE ${PORT}
 
 # Serve via the Vite dev server
 CMD ["sh", "-c", "npm run dev -- --host --port ${PORT}"]
