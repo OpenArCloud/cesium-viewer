@@ -120,6 +120,27 @@
         background: #666;
       }
 
+      .request-button[aria-busy="true"]::before {
+        content: "";
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-right: 7px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: white;
+        border-radius: 50%;
+        vertical-align: -2px;
+        animation: request-spin 0.7s linear infinite;
+      }
+
+      .request-button:disabled {
+        cursor: wait;
+      }
+
+      @keyframes request-spin {
+        to { transform: rotate(360deg); }
+      }
+
       .switch {
         position: relative;
         display: inline-block;
@@ -284,13 +305,13 @@
       >
         Ground Level (m)
       </span>
-      <button onclick="Localize()">Localize</button>
+      <button id="localizeButton" class="request-button" onclick="Localize()">Localize</button>
       <div id="statusText"></div>
     </div>
     <div id="toolbar2">
       <input type="text" placeholder="POI URL" id="poiurl" />
       <input type="text" placeholder="Query" id="query" />
-      <button onclick="searchForPOIS()">Search</button>
+      <button id="poiSearchButton" class="request-button" onclick="searchForPOIS()">Search</button>
       <div id="poiSearchText"></div>
     </div>
 
@@ -485,7 +506,10 @@
           // TODO: the camera timestamp should be read from the EXIF
           // read the DateTimeOriginal and OffsetTime tags, and then converted to posixTimeMillis
 
-          sendRequest(
+          const localizeButton = document.getElementById("localizeButton");
+          localizeButton.disabled = true;
+          localizeButton.setAttribute("aria-busy", "true");
+          await sendRequest(
             document.getElementById("vpsurl").value,
             JSON.stringify(geoPoseRequest)
           )
@@ -533,6 +557,10 @@
               console.log("Wrong VPS address or VPS error:", err);
               const statusDiv = document.getElementById("statusText");
               statusDiv.textContent = "Wrong VPS address or VPS error";
+            })
+            .finally(() => {
+              localizeButton.disabled = false;
+              localizeButton.setAttribute("aria-busy", "false");
             });
         } catch (err) {
           console.log("Could not send localization request due to error: ", err);
@@ -882,10 +910,13 @@
       }
 
       async function searchForPOIS() {
-        removeEntityWithName("mapPin");
+        const searchButton = document.getElementById("poiSearchButton");
+        searchButton.disabled = true;
+        searchButton.setAttribute("aria-busy", "true");
         let url = document.getElementById("poiurl").value;
         let query = document.getElementById("query").value;
         try {
+          removeEntityWithName("mapPin");
           let places = await callAPI(url, poiLat, poiLon, query);
 
           if (places) {
@@ -905,6 +936,9 @@
           }
         } catch {
           console.log("Error calling API");
+        } finally {
+          searchButton.disabled = false;
+          searchButton.setAttribute("aria-busy", "false");
         }
       }
 
