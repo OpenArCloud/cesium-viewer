@@ -7,8 +7,8 @@
     <!-- CesiumJS CSS -->
     <link href="./Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
 
-    <!-- CesiumJS Script -->
-    <script src="./Build/Cesium/Cesium.js"></script>
+    <!-- Cesium's static assets (Workers/Assets/Widgets) are served from public/Build/Cesium -->
+    <script>window.CESIUM_BASE_URL = "./Build/Cesium/";</script>
 
     <!-- Custom Styles -->
     <style>
@@ -313,6 +313,7 @@
       //------------------
 
       import { v4 as uuidv4 } from "uuid";
+      import * as Cesium from "./Build/Cesium/index.js";
       import {
         CesiumWidget,
         Terrain,
@@ -368,7 +369,7 @@
         baseConnected = this.checked;
         console.log("Base toggle state:", baseConnected);
         if (!connectionDetails) {
-          console.log("Error: no config.json was found");
+          console.log("Error: no connect.json was found");
           return;
         }
 
