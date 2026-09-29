@@ -7,7 +7,7 @@
     "heading": 0,
     "pitch": -0.49459905591668996,
     "roll": 0,
-    "enabled": false
+    "enabled": true
   },
   {
     "name": "Moricz",
@@ -37,10 +37,10 @@
     "heading": 0,
     "pitch": -0.49459905591668996,
     "roll": 0,
-    "enabled": false
+    "enabled": true
   },
   {
-    "name": "Greenwich Observatory",
+    "name": "Greenwich",
     "lon": 0,
     "lat": 51.4769,
     "height": 200,

@@ -43,6 +43,14 @@ Docker Compose also reads a `.env` file from the project directory by default, b
 
 # Using the Cesium viewer
 
+## Configuring locations
+
+Selectable viewer locations are configured in `locations.json`. Each entry must
+contain a name, coordinates, height, and camera orientation (`heading`,
+`pitch`, and `roll`). The viewer only creates a location button for entries
+whose `enabled` property is `true`; set it to `false` to keep a location in the
+configuration without displaying it. Bari and Corvin are currently enabled.
+
 ## OpenVPS
 
 In the VPS URL text field type in the URL where the VPS runs. The height parameter is to set the height of the result above sea level. The Choose Image button will open the file explorer where you can upload a query image that will be used for localization. Keep in mind the image MUST contain exif data otherwise it will not give any results. Once the result comes back from the OpenVPS the viewer will go into a first person view of where the image was taken. If the height parameter was not set or below ground the POV will be on the ground.
