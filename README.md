@@ -25,11 +25,21 @@ npm run dev --  --host --port YOUR_EXTERNAL_PORT
 ```
 ## Run with docker
 ```
-TAG=oarc_cesium_viewer
+TAG=oscp/cesium-viewer
 docker build . -t $TAG
-docker run -p YOUR_EXTERNAL_PORT:8044 -d $TAG:latest
+docker run --restart unless-stopped -p YOUR_EXTERNAL_PORT:8044 -d $TAG:latest
 ```
 You can set the port to what best fits you requirements
+
+## Run with docker compose
+
+Copy `.env.example` to `.env`, set `VITE_CESIUM_TOKEN`, and adjust `PORT` if needed. Then pass the file explicitly to Docker Compose:
+
+```
+docker compose --env-file .env up -d
+```
+
+Docker Compose also reads a `.env` file from the project directory by default, but `--env-file .env` makes the source of those values explicit.
 
 # Using the Cesium viewer
 

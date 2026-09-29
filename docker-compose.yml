@@ -1,5 +1,6 @@
 services:
   cesium-viewer:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: dockerfile
