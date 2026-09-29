@@ -1,5 +1,6 @@
 services:
   cesium-viewer:
+    image: oscp/cesium-viewer:latest
     restart: unless-stopped
     build:
       context: .
