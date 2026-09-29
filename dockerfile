@@ -19,6 +19,9 @@ ENV VITE_CESIUM_TOKEN=$VITE_CESIUM_TOKEN
 ARG PORT=8044
 ENV PORT=${PORT}
 
+# The deployed dev server must not force browser reloads via HMR
+ENV DISABLE_HMR=true
+
 # Expose the dev server port
 EXPOSE ${PORT}
 
