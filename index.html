@@ -597,6 +597,19 @@
       });
       viewer.camera.frustum.fov = Cesium.Math.toRadians(110);
 
+      function showDefaultGlobeView() {
+        viewer.scene.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(0, 20, 20000000),
+          orientation: new Cesium.HeadingPitchRoll(
+            0,
+            -Cesium.Math.PI_OVER_TWO,
+            0
+          ),
+        });
+      }
+
+      showDefaultGlobeView();
+
       document
         .getElementById("toggleSwitch")
         .addEventListener("change", function () {
@@ -884,6 +897,22 @@
       // View Locations
       let locations = [];
 
+      function isValidLocation(location) {
+        return location &&
+          typeof location.name === "string" &&
+          location.name.trim().length > 0 &&
+          Number.isFinite(location.lon) &&
+          location.lon >= -180 &&
+          location.lon <= 180 &&
+          Number.isFinite(location.lat) &&
+          location.lat >= -90 &&
+          location.lat <= 90 &&
+          Number.isFinite(location.height) &&
+          Number.isFinite(location.heading) &&
+          Number.isFinite(location.pitch) &&
+          Number.isFinite(location.roll);
+      }
+
       async function flyToLocation(location, duration = 2) {
         removeEntityWithName("mapPin");
         viewer.scene.camera.flyTo({
@@ -914,18 +943,30 @@
       }
 
       async function loadLocations() {
-        const response = await fetch("locations.json");
-        locations = await response.json();
-        renderLocationButtons();
-        const enabledLocations = locations.filter(
-          (location) => location.enabled
-        );
-        const defaultLocation =
-          enabledLocations.find((location) => location.default) ||
-          enabledLocations[0];
-        if (defaultLocation) {
-          flyToLocation(defaultLocation, 0);
+        try {
+          const response = await fetch("locations.json");
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          }
+
+          const loadedLocations = await response.json();
+          if (!Array.isArray(loadedLocations)) {
+            throw new Error("locations.json must contain an array");
+          }
+
+          locations = loadedLocations.filter((location) => {
+            const valid = isValidLocation(location);
+            if (!valid) {
+              console.warn("Ignoring invalid location config:", location);
+            }
+            return valid;
+          });
+        } catch (error) {
+          console.warn(`Could not load locations.json: ${error}`);
+          locations = [];
         }
+
+        renderLocationButtons();
       }
       let agents = [];
       let spherePositions = {};
