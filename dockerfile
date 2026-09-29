@@ -1,5 +1,5 @@
 # Use official Node image
-FROM node:20
+FROM node:latest
 
 # Create app directory
 WORKDIR /app
@@ -11,8 +11,17 @@ RUN npm install
 # Copy rest of the files
 COPY . .
 
-# Expose the Vite dev server port
-EXPOSE 8044
+# Vite bakes env vars into the production bundle at build time, so it must be
+# supplied as a build arg rather than a runtime environment variable
+ARG VITE_CESIUM_TOKEN
+ENV VITE_CESIUM_TOKEN=$VITE_CESIUM_TOKEN
+RUN npm run build
 
-# Start Vite dev server with host and port
-CMD ["sh", "-c", "npm run dev -- --host --port 8044"]
+# Port the production server listens on, overridable via the PORT env var
+ENV PORT=8044
+
+# Expose the production server port
+EXPOSE $PORT
+
+# Serve the production build
+CMD ["sh", "-c", "npm run preview -- --host --port ${PORT}"]

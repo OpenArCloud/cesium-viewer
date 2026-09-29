@@ -1,0 +1,11 @@
+services:
+  cesium-viewer:
+    build:
+      context: .
+      dockerfile: dockerfile
+      args:
+        - VITE_CESIUM_TOKEN=${VITE_CESIUM_TOKEN}
+    environment:
+      - PORT=${PORT}
+    ports:
+      - "${PORT}:${PORT}"

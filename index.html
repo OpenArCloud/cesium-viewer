@@ -238,8 +238,6 @@
         color: white;
       "
     >
-      <button onclick="Corvin()">Corvin</button>
-      <button onclick="Aalto()">Aalto</button>
     </div>
     <div id="toolbar">
       <input
@@ -310,8 +308,7 @@
       let poiHeight = 0;
 
       //TOKENS------------
-      const CesiumToken =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0ZGIyMGE3NC03NmUxLTRlNjQtYTE3Ny1mNzQwOGI0YTM1NzgiLCJpZCI6Mjk0MDAxLCJpYXQiOjE3NDQ2Mzk3ODR9.K68s7FUXRHCwRn8L4UZQFQHzDfO3RmikQmRcDbgY6Jo";
+      const CesiumToken = import.meta.env.VITE_CESIUM_TOKEN;
       const tileID = 2275207;
       //------------------
 
@@ -885,45 +882,50 @@
       }
 
       // View Locations
-      async function Corvin(duration = 2) {
-        removeEntityWithName("mapPin");
-        //const place = await callAPI(47.485843084151384, 19.076113817393416, "restaurant");
+      let locations = [];
 
-        viewer.scene.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(
-            19.07942624,
-            47.484977,
-            170
-          ),
-          orientation: new Cesium.HeadingPitchRoll(0, -0.49459905591668996, 0),
-          duration: duration,
-        });
-      }
-
-      async function Moricz(duration = 2) {
+      async function flyToLocation(location, duration = 2) {
         removeEntityWithName("mapPin");
         viewer.scene.camera.flyTo({
           destination: Cesium.Cartesian3.fromDegrees(
-            19.044429799048846,
-            47.47749819582731,
-            300
+            location.lon,
+            location.lat,
+            location.height
           ),
           orientation: new Cesium.HeadingPitchRoll(
-            1.5,
-            -0.49459905591668996,
-            0
+            location.heading,
+            location.pitch,
+            location.roll
           ),
           duration: duration,
         });
       }
 
-      async function Aalto(duration = 2) {
-        removeEntityWithName("mapPin");
-        viewer.scene.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(24.828, 60.18499, 100),
-          orientation: new Cesium.HeadingPitchRoll(0, 0, 0),
-          duration: duration,
-        });
+      function renderLocationButtons() {
+        const base = document.getElementById("base");
+        base.innerHTML = "";
+        for (const location of locations) {
+          if (!location.enabled) continue;
+          const button = document.createElement("button");
+          button.textContent = location.name;
+          button.addEventListener("click", () => flyToLocation(location));
+          base.appendChild(button);
+        }
+      }
+
+      async function loadLocations() {
+        const response = await fetch("locations.json");
+        locations = await response.json();
+        renderLocationButtons();
+        const enabledLocations = locations.filter(
+          (location) => location.enabled
+        );
+        const defaultLocation =
+          enabledLocations.find((location) => location.default) ||
+          enabledLocations[0];
+        if (defaultLocation) {
+          flyToLocation(defaultLocation, 0);
+        }
       }
       let agents = [];
       let spherePositions = {};
@@ -1123,14 +1125,11 @@
         CreateEntityWithName(entityName, lon, lat, height, rgb, name);
       }
       setInterval(checkAgents, 1000);
-      Corvin(0);
-      window.Corvin = Corvin;
-      window.Moricz = Moricz;
+      loadLocations();
       window.connectRMQ = connectRMQ;
       window.searchForPOIS = searchForPOIS;
       window.Localize = Localize;
       window.Go = Go;
-      window.Aalto = Aalto;
 
       const toolbarSelect = document.getElementById("toolbarSelect");
       const toolbars = [

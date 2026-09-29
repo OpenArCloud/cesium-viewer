@@ -1,0 +1,53 @@
+[
+  {
+    "name": "Corvin",
+    "lon": 19.07942624,
+    "lat": 47.484977,
+    "height": 170,
+    "heading": 0,
+    "pitch": -0.49459905591668996,
+    "roll": 0,
+    "enabled": false
+  },
+  {
+    "name": "Moricz",
+    "lon": 19.044429799048846,
+    "lat": 47.47749819582731,
+    "height": 300,
+    "heading": 1.5,
+    "pitch": -0.49459905591668996,
+    "roll": 0,
+    "enabled": false
+  },
+  {
+    "name": "Aalto",
+    "lon": 24.828,
+    "lat": 60.18499,
+    "height": 100,
+    "heading": 0,
+    "pitch": -0.49459905591668996,
+    "roll": 0,
+    "enabled": false
+  },
+  {
+    "name": "Bari",
+    "lon": 16.854843463579634,
+    "lat": 41.09821580004568,
+    "height": 200,
+    "heading": 0,
+    "pitch": -0.49459905591668996,
+    "roll": 0,
+    "enabled": false
+  },
+  {
+    "name": "Greenwich Observatory",
+    "lon": 0,
+    "lat": 51.4769,
+    "height": 200,
+    "heading": 0,
+    "pitch": -0.49459905591668996,
+    "roll": 0,
+    "default": true,
+    "enabled": true
+  }
+]

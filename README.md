@@ -8,7 +8,7 @@ To run the application some preparations are required
 
 ## Get a Cesium Token
 
-Visit the [Cesium ion](https://ion.cesium.com/signin/) website and register. At the Access Tokens tab you will be able to find your Default Token. Paste this into the CesiumToken variable in index.html. In the viewer we are using Google Photorealistic 3D Tiles. To get the id of the tileset go to My Assets and choose Google Photorealistic 3D Tiles. You will be able to see the id there. Paste this into the tileID variable in index.html.
+Visit the [Cesium ion](https://ion.cesium.com/signin/) website and register. At the Access Tokens tab you will be able to find your Default Token. Copy `.env.example` to `.env` and set `VITE_CESIUM_TOKEN` to this token (`.env` is gitignored, so it never gets committed). When running in Docker, pass it as a real environment variable instead, e.g. `docker run -e VITE_CESIUM_TOKEN=... ...`. In the viewer we are using Google Photorealistic 3D Tiles. To get the id of the tileset go to My Assets and choose Google Photorealistic 3D Tiles. You will be able to see the id there. Paste this into the tileID variable in index.html.
 
 
 ## Set the vite.config.js file
