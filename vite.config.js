@@ -1,15 +1,15 @@
 // vite.config.js
 import { defineConfig } from 'vite';
+import dotenv from 'dotenv';
 
 
 dotenv.config();
 
 export default defineConfig({
   server: {
-    port: 8044,
     allowedHosts: [
       "0.0.0.0"
-    ]
+    ],
     port: Number(process.env.PORT) || 8044,
     proxy: {
       "/api": {
@@ -19,5 +19,8 @@ export default defineConfig({
         rewrite: path => path.replace(/^\/api/, "")
       }
     }
+  },
+  build: {
+    target: 'esnext'
   },
 });
