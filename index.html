@@ -308,7 +308,7 @@
       let poiHeight = 0;
 
       //TOKENS------------
-      const CesiumToken = import.meta.env.VITE_CESIUM_TOKEN;
+      const cesiumToken = import.meta.env.VITE_CESIUM_TOKEN;
       const tileID = 2275207;
       //------------------
 
@@ -586,8 +586,14 @@
         reader.readAsDataURL(imageFile);
       });
 
-      // Replace this with your actual Cesium Ion access token
-      Cesium.Ion.defaultAccessToken = CesiumToken;
+      // Without a token every Cesium ion request fails with HTTP 401.
+      if (!cesiumToken) {
+        alert(
+          "VITE_CESIUM_TOKEN is not set, so Cesium ion requests will fail with HTTP 401. " +
+            "Set it in .env for local runs, or pass it to the container with -e VITE_CESIUM_TOKEN=..."
+        );
+      }
+      Cesium.Ion.defaultAccessToken = cesiumToken;
 
       const viewer = new Cesium.Viewer("cesiumContainer", {
         globe: false,
@@ -754,7 +760,10 @@
           viewer.scene.primitives.add(tileset);
           document.getElementById("loadingOverlay").style.display = "none";
         } catch (error) {
-          alert(`Error loading 3D Tiles tileset: ${error}`);
+          const hint = String(error).includes("401")
+            ? " Check that VITE_CESIUM_TOKEN is set and valid, and that the tileID asset is in your Cesium ion account."
+            : "";
+          alert(`Error loading 3D Tiles tileset: ${error}${hint}`);
         }
       }
 
