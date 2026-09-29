@@ -824,8 +824,12 @@
         }
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-      await getTileset();
-      viewer.scene.skyAtmosphere.show = true;
+      async function initializeViewer() {
+        await getTileset();
+        viewer.scene.skyAtmosphere.show = true;
+      }
+
+      initializeViewer();
 
       async function callAPI(poiUrl, lat, lng, keyword) {
         let url =
